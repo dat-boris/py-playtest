@@ -1,0 +1,18 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+autologging = "*"
+pytest-watch = "*"
+mypy = "*"
+
+[packages]
+gym = "*"
+h5py = "*"
+pandas = "*"
+click = "*"
+
+[requires]
+python_version = "3.7"
