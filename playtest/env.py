@@ -12,12 +12,14 @@ import gym
 import gym.spaces as spaces
 from rl.core import Agent
 
-import bg_gym.core.game as gm
-import bg_gym.components.core as co
+from .game import Game
+from .state import FullState
+from .action import ActionFactory, ActionRange, ActionInstance, InvalidActionError
+from .utils import Reward
 
 
 class GameWrapperEnvironment(gym.Env):
-    """A wrapper which converts bg_gym into an environment
+    """A wrapper which converts playtest into an environment
 
     This is built based on reference of the cartpole elements
     gym: envs/classic_control/cartpole.py
@@ -25,18 +27,18 @@ class GameWrapperEnvironment(gym.Env):
 
     metadata = {"render.modes": ["human"]}
 
-    game: gm.Game
-    action_factory: gm.ActionFactory
-    state: co.FullState
+    game: Game
+    action_factory: ActionFactory
+    state: FullState
     game_gen: Optional[Generator]
     next_player: int
-    next_accepted_action: Optional[Sequence[gm.ActionRange]]
+    next_accepted_action: Optional[Sequence[ActionRange]]
     cached_space: Optional[spaces.Space]
     # Number of times input is invalid
-    continuous_invalid_inputs: List[gm.ActionInstance]
+    continuous_invalid_inputs: List[ActionInstance]
     max_continuous_invalid_inputs: int = 100
 
-    def __init__(self, game: gm.Game):
+    def __init__(self, game: Game):
         self.game = game
         self.action_factory = game.action_factory
         self.state = game.state
@@ -88,7 +90,7 @@ class GameWrapperEnvironment(gym.Env):
     @property
     def reward_range(self) -> Tuple[int, int]:
         low, high = self.game.reward_range
-        assert low >= gm.Reward.INVALID_ACTION, "Punish reward must be higher than game"
+        assert low >= Reward.INVALID_ACTION, "Punish reward must be higher than game"
         return low, high
 
     # TODO: The return is an instance of the observation
@@ -126,7 +128,7 @@ class GameWrapperEnvironment(gym.Env):
             ), f"Expect action of type nd.array (got: {a.__class__})"
             # Decode value from open_ai
             action = self.action_factory.from_numpy(agents_action[player_id])
-            assert isinstance(action, gm.ActionInstance)
+            assert isinstance(action, ActionInstance)
             # logging.warning(f"Player {player_id} got action: {action}")
             if player_id == self.next_player:
                 for action_range in self.next_accepted_action:
@@ -135,16 +137,16 @@ class GameWrapperEnvironment(gym.Env):
                         break
                 if action_to_send is None:
                     self.continuous_invalid_inputs.append(action)
-                    rewards[player_id] = gm.Reward.INVALID_ACTION
+                    rewards[player_id] = Reward.INVALID_ACTION
 
             else:
                 # Make sure for other player, the action is appropriate
                 # If it is not their turn and they move, punish!
-                expected_default_action: gm.ActionInstance = self.action_factory.default
+                expected_default_action: ActionInstance = self.action_factory.default
                 if action != expected_default_action:
-                    rewards[player_id] = gm.Reward.INVALID_ACTION
+                    rewards[player_id] = Reward.INVALID_ACTION
                 else:
-                    rewards[player_id] = gm.Reward.VALID_ACTION
+                    rewards[player_id] = Reward.VALID_ACTION
 
         # check if we have a valid action, and return that
         if not action_to_send:
@@ -177,7 +179,7 @@ class GameWrapperEnvironment(gym.Env):
             return (
                 observations,
                 # TODO: return winner's reward
-                [gm.Reward.VALID_ACTION] * self.game.number_of_players,
+                [Reward.VALID_ACTION] * self.game.number_of_players,
                 # All players to terminate
                 [True] * self.game.number_of_players,
                 {},
@@ -229,7 +231,7 @@ class HumanAgent(Agent):
             try:
                 given_action = input(prompt)
                 chosen_action = env.action_factory.from_str(given_action)
-            except gm.InvalidActionError as e:
+            except InvalidActionError as e:
                 print(str(e))
 
         # Now from the chosen action, convert back to np.ndarray

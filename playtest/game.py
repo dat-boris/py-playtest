@@ -4,8 +4,10 @@ import numpy as np
 
 import gym.spaces as spaces
 
-from bg_gym.core.logger import Announcer
-import bg_gym.components.core as co
+from .utils import Param, Reward
+from .state import FullState
+from .action import ActionFactory, ActionInstance, ActionRange
+from .logger import Announcer
 
 
 class Player:
@@ -18,7 +20,7 @@ class Player:
 class Game:
     announcer: Announcer
     param: Param
-    state: co.FullState
+    state: FullState
     action_factory: ActionFactory
     players: List[Player]
 
