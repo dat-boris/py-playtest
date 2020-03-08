@@ -5,7 +5,7 @@ import pytest
 import gym.spaces as spaces
 
 
-from .action import ActionBetRange
+from .action import ActionBetRange, ActionBet
 
 
 @pytest.fixture

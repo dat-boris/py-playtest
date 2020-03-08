@@ -22,7 +22,7 @@ def test_serialize(state):
     assert len(st_data["deck"]) == 52
     assert len(st_data["discarded"]) == 0
 
-    new_state = bj.State.from_data(st_data)
+    new_state = State.from_data(st_data)
     st_data_new = new_state.to_data()
 
     assert st_data == st_data_new

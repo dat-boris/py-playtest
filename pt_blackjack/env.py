@@ -1,5 +1,7 @@
-from playtest.envs.blackjack.game import Blackjack, Param
-from playtest.core.env import GameWrapperEnvironment
+from playtest.env import GameWrapperEnvironment
+
+from .utils import Param
+from .game import Blackjack
 
 AGENT_COUNT = 2
 

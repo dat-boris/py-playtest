@@ -13,11 +13,10 @@ black = "==19.10b0"
 gym = "*"
 click = "*"
 numpy = "*"
-# Require older version of tensor
-keras-rl = "*"
+# Require older version of tensorflow
 tensorflow = "==1.13.1"
-tensorforce = "==0.5.3"
-
+keras-rl = {editable = true,git = "https://github.com/dat-boris/keras-rl.git",ref = "add-multi-agent"}
+wandb = "*"
 
 [requires]
 python_version = "3.7"
