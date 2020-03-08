@@ -7,7 +7,7 @@ from playtest.env import GameWrapperEnvironment
 from playtest.action import InvalidActionError, ActionWait, ActionWaitRange
 
 
-from .utils import Reward
+from .constant import Reward
 from .env import BlackjackEnvironment
 from .action import (
     ActionBetRange,

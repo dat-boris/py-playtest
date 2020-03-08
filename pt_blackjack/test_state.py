@@ -1,6 +1,6 @@
 import pytest
 
-from .utils import Param
+from .constant import Param
 from .state import State
 
 NUMBER_OF_PLAYERS = 2

@@ -4,7 +4,7 @@ import numpy as np
 
 import gym.spaces as spaces
 
-from .utils import Param, Reward
+from .constant import Param, Reward
 from .state import FullState
 from .action import ActionFactory, ActionInstance, ActionRange
 from .logger import Announcer

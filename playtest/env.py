@@ -15,7 +15,7 @@ from rl.core import Agent
 from .game import Game
 from .state import FullState
 from .action import ActionFactory, ActionRange, ActionInstance, InvalidActionError
-from .utils import Reward
+from .constant import Reward
 
 
 class GameWrapperEnvironment(gym.Env):

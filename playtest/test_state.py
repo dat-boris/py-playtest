@@ -4,7 +4,7 @@ import pytest
 
 import gym.spaces as spaces
 
-from .utils import Param
+from .constant import Param
 from .components.card import Deck
 from .state import SubState, FullState
 

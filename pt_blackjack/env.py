@@ -1,6 +1,6 @@
 from playtest.env import GameWrapperEnvironment
 
-from .utils import Param
+from .constant import Param
 from .game import Blackjack
 
 AGENT_COUNT = 2

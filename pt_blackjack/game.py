@@ -7,7 +7,7 @@ import gym.spaces as spaces
 
 from playtest import Game, Player
 from .state import State, PlayerState
-from .utils import Param, Reward
+from .constant import Param, Reward
 from .action import (
     ActionFactory,
     ActionBetRange,

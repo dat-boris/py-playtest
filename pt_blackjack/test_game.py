@@ -9,7 +9,7 @@ from .action import (
     ACTION_SKIP,
 )
 
-from .utils import Param
+from .constant import Param
 from .state import State, PlayerState
 from .game import Blackjack
 

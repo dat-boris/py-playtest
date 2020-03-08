@@ -14,7 +14,7 @@ import pytest
 
 import gym.spaces as spaces
 
-from .utils import Param
+from .constant import Param
 from .action import (
     ActionWaitRange,
     ActionRange,

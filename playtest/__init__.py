@@ -1,5 +1,5 @@
 from .state import FullState, SubState
-from .utils import Param, Reward
+from .constant import Param, Reward
 from .game import Game, Player
 from .logger import Announcer
 

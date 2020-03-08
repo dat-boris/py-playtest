@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-import playtest.utils as ut
+import playtest.constant as ut
 
 
 @dataclass

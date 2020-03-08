@@ -7,7 +7,7 @@ import gym.spaces as spaces
 
 from .state import FullState
 from .logger import Announcer
-from .utils import Param
+from .constant import Param
 from .components.core import Component
 
 
