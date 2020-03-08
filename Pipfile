@@ -7,12 +7,12 @@ verify_ssl = true
 autologging = "*"
 pytest-watch = "*"
 mypy = "*"
+black = "*"
 
 [packages]
 gym = "*"
-h5py = "*"
-pandas = "*"
 click = "*"
+numpy = "*"
 
 [requires]
 python_version = "3.7"
