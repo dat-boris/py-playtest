@@ -13,6 +13,7 @@ from .action import (
     ActionBetRange,
     ACTION_HIT,
     ACTION_SKIP,
+    ActionBet,
     ActionInstance,
     ActionRange,
     ActionHitRange,
@@ -20,13 +21,9 @@ from .action import (
 )
 
 
-class Blackjack(Game):
+class Blackjack(Game[State, ActionFactory, Param]):
 
     base_state = State
-    param: Param
-    state: State
-    players: List[Player]
-    last_player_reward: int
 
     def __init__(self, param: Param):
         self.state = State(param=param)
@@ -38,20 +35,6 @@ class Blackjack(Game):
         self.players = []
         for i in range(param.number_of_players):
             self.players.append(Player(i))
-
-    def reset(self) -> State:
-        """Reset the game
-
-        This reset the game to the first initial observation of the first
-        player move.  Note that this might mean that this include some
-        setup (e.g. dealing initial cards to player).
-
-        The return of State is intentional, and allow the environment to return
-        the initial observation.
-        """
-        self.a.say("Resetting game.")
-        self.s.reset()
-        return self.s
 
     def start(
         self,
@@ -74,8 +57,6 @@ class Blackjack(Game):
             if winner is not None:
                 break
         # TODO: how to reward the player?
-        # if winner is not None:
-        #     yield (winner, [Action.wait], Reward.WINNER)
 
     def find_winner(self) -> Optional[int]:
         all_banks = [self.s.get_player_state(p.id).bank.amount for p in self.players]
@@ -106,21 +87,22 @@ class Blackjack(Game):
         player_bank: int = player_state.bank.amount
         accepted_action: Sequence[ActionRange] = [ActionBetRange(0, player_bank)]
         bet_value = None
-        bet = yield (p.id, accepted_action, self.last_player_reward)
+        bet = yield from self.get_player_action(p.id, accepted_action)
+        assert isinstance(bet, ActionBet)
         assert accepted_action[0].is_valid(bet), "Invalid bet made!"
         bet_value = bet.value
         self.a.say(f"Player {p.id} bet: {bet_value} coin")
         player_state.bet.take_from(player_state.bank, value=bet_value)
         action = None
         # TODO: calculate reward
-        self.last_player_reward = Reward.BETTED
+        self.set_last_player_reward(Reward.BETTED)
 
         hit_rounds = 0
         self.a.ask("Do you want to hit or pass?")
         while action != ACTION_SKIP and hit_rounds <= self.param.max_hits:
             # Note that this is class of action, while returned would be an instance
             accepted_action = [ActionHitRange(), ActionSkipRange()]
-            action = yield (p.id, accepted_action, self.last_player_reward)
+            action = yield from self.get_player_action(p.id, accepted_action)
             self.a.say(f"Player {p.id} round {hit_rounds}: {action}")
             assert any(
                 [action_range.is_valid(action) for action_range in accepted_action]
@@ -128,12 +110,12 @@ class Blackjack(Game):
             if action == ACTION_HIT:
                 self.s.deck.deal(player_state.hand, 1)
                 # TODO: calculate reward
-                self.last_player_reward = Reward.HITTED
+                self.set_last_player_reward(Reward.HITTED)
 
             hit_rounds += 1
 
         # TODO: calculate reward
-        self.last_player_reward = Reward.SKIPPED
+        self.set_last_player_reward(Reward.SKIPPED)
         self.a.say("Okay pass - on to next player!")
 
     def determine_winner(self):
