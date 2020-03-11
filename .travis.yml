@@ -14,8 +14,8 @@ env:
 
 # install packages
 install:
-  - pip install pipenv --dev
-  - pipenv install
+  - pip install pipenv
+  - pipenv install --dev
 
 # run test
 script:
