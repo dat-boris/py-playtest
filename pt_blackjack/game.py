@@ -5,7 +5,7 @@ import numpy as np
 
 import gym.spaces as spaces
 
-from playtest import Game, Player
+from playtest.game import Game, Player
 from .state import State, PlayerState
 from .constant import Param, Reward
 from .action import (

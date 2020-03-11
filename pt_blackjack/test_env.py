@@ -7,8 +7,8 @@ from playtest.env import GameWrapperEnvironment
 from playtest.action import InvalidActionError, ActionWait, ActionWaitRange
 
 
-from .constant import Reward
-from .env import BlackjackEnvironment
+from .constant import Reward, Param
+from .game import Blackjack
 from .action import (
     ActionBetRange,
     ActionHit,
@@ -23,7 +23,7 @@ AGENT_COUNT = 2
 
 @pytest.fixture
 def env() -> GameWrapperEnvironment:
-    env = BlackjackEnvironment()
+    env = GameWrapperEnvironment(Blackjack(Param(number_of_players=2)))
     return env
 
 
