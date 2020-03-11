@@ -1,20 +1,15 @@
 from typing import List
 
 from playtest.components import Deck, Token
-from playtest import SubState, FullState
+from playtest import SubState, FullState, Visibility
 
 
 class PlayerState(SubState):
 
-    full_data_spec = {
-        "hand": Deck,
-        "bank": Token,
-        "bet": Token,
-    }
-
-    visible_data_spec = {
-        "bank": Token,
-        "bet": Token,
+    visibility = {
+        "hand": Visibility.SELF,
+        "bank": Visibility.ALL,
+        "bet": Visibility.ALL,
     }
 
     hand: Deck
@@ -29,13 +24,9 @@ class PlayerState(SubState):
 
 class State(FullState):
 
-    full_data_spec = {
-        "deck": Deck,
-        "discarded": Deck,
-    }
-
-    visible_data_spec = {
-        "discarded": Deck,
+    visibility = {
+        "deck": Visibility.NONE,
+        "discarded": Visibility.ALL,
     }
 
     player_state_class = PlayerState

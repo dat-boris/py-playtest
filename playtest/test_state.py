@@ -6,16 +6,15 @@ import gym.spaces as spaces
 
 from .constant import Param
 from .components.card import Deck
-from .state import SubState, FullState
+from .state import SubState, FullState, Visibility
 
 
 class MockPlayerState(SubState):
-    full_data_spec = {
-        "hand": Deck,
-        "open_hand": Deck,
-    }
 
-    visible_data_spec = {"open_hand": Deck}
+    visibility = {
+        "hand": Visibility.SELF,
+        "open_hand": Visibility.ALL,
+    }
 
     hand: Deck
     open_hand: Deck
@@ -27,18 +26,11 @@ class MockPlayerState(SubState):
 
 class MockState(FullState):
 
-    full_data_spec = {
-        "deck": Deck,
-        "discarded": Deck,
-        # The following will be renered automatically
-        # "players": Sequence[PlayerState],
-    }
-
     player_state_class = MockPlayerState
 
-    visible_data_spec = {
-        # Deck is invisible
-        "discarded": Deck,
+    visibility = {
+        "deck": Visibility.NONE,
+        "discarded": Visibility.ALL,
     }
 
     deck: Deck
