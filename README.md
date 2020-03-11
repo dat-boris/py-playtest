@@ -1,5 +1,8 @@
 # PyPlayetest
 
+[![Build Status](https://travis-ci.org/dat-boris/py-playtest.svg?branch=master)](https://travis-ci.org/dat-boris/py-playtest)
+[![codecov](https://codecov.io/gh/dat-boris/py-playtest/branch/master/graph/badge.svg)](https://codecov.io/gh/dat-boris/py-playtest)
+
 A library for implementing framework to do virtual playtesting for
 boardgames.
 
