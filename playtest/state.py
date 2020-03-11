@@ -1,9 +1,25 @@
-from typing import Dict, Type, Sequence
+import inspect
+from typing import Dict, Type, Sequence, Union
 import numpy as np
+from enum import IntEnum
 
 import gym.spaces as spaces
 
 from .components.core import Component
+
+
+class Visibility(IntEnum):
+    """Represent visibility - the higher it is, more visible it is"""
+
+    ALL = 3
+    SELF = 2
+    NONE = 1
+
+    @staticmethod
+    def is_visible_to(
+        comp_visibility: "Visibility", min_visibility: "Visibility"
+    ) -> bool:
+        return comp_visibility >= min_visibility
 
 
 class SubState(Component):
@@ -12,17 +28,13 @@ class SubState(Component):
     Can contain other instance of states
     """
 
-    # Specify what class to deserialize with
-    full_data_spec: Dict[str, Type[Component]] = {}
-
-    # Specify what should be visible with the data
-    visible_data_spec: Dict[str, Type[Component]] = {}
+    visibility: Dict[str, Visibility]
 
     def __init__(self, param=None):
         pass
 
     def reset(self):
-        for name in self.full_data_spec.keys():
+        for name in self.visibility.keys():
             attr_val = getattr(self, name, None)
             assert attr_val is not None, f"Instance did not have value {name}"
             if isinstance(attr_val, list):
@@ -32,14 +44,14 @@ class SubState(Component):
                 attr_val.reset()
 
     def to_data(self):
-        return self._to_data_from_spec(self.full_data_spec)
+        return self._to_data_from_spec(Visibility.NONE)
 
     def to_visible_data(self):
-        return self._to_data_from_spec(self.visible_data_spec)
+        return self._to_data_from_spec(Visibility.ALL)
 
     def to_numpy_data(self):
         return self._to_data_from_spec(
-            self.full_data_spec, to_data_func_name="to_numpy_data"
+            Visibility.NONE, to_data_func_name="to_numpy_data",
         )
 
     def get_observation_space(self) -> spaces.Space:
@@ -53,39 +65,38 @@ class SubState(Component):
 
     def get_observation_space_visible(self) -> spaces.Space:
         obs_dict = self._to_data_from_spec(
-            self.visible_data_spec, to_data_func_name="get_observation_space"
+            Visibility.ALL, to_data_func_name="get_observation_space",
         )
         return spaces.Dict(obs_dict)
 
     def get_observation_space_full(self) -> spaces.Space:
         obs_dict = self._to_data_from_spec(
-            self.full_data_spec, to_data_func_name="get_observation_space"
+            Visibility.NONE, to_data_func_name="get_observation_space",
         )
         return spaces.Dict(obs_dict)
 
     def to_visible_numpy_data(self):
         return self._to_data_from_spec(
-            self.visible_data_spec, to_data_func_name="to_numpy_data"
+            Visibility.ALL, to_data_func_name="to_numpy_data",
         )
 
     def _to_data_from_spec(
-        self, spec: Dict[str, Type[Component]], to_data_func_name="to_data"
+        self, min_visibility: Visibility, to_data_func_name="to_data",
     ) -> Dict:
         """Convert data based on the given spec"""
         val_dict: Dict = {}
-        for name, data_class in spec.items():
+        for name, visibility in self.visibility.items():
+            if not Visibility.is_visible_to(visibility, min_visibility):
+                continue
             attr_val = getattr(self, name, None)
-            if isinstance(attr_val, list):
-                val_dict[name] = []
-                for attr_val_in_list in attr_val:
-                    assert isinstance(attr_val_in_list, data_class)
-                    # e.g. attr_val_in_list.to_data()
-                    to_data_func = getattr(attr_val_in_list, to_data_func_name)
-                    val_dict[name].append(to_data_func())
-            else:
-                assert isinstance(
-                    attr_val, data_class
-                ), f"Value {name}={attr_val} does not match to class {data_class}"
+            # if isinstance(attr_val, list):
+            #     val_dict[name] = []
+            #     for attr_val_in_list in attr_val:
+            #         assert isinstance(attr_val_in_list, data_class)
+            #         # e.g. attr_val_in_list.to_data()
+            #         to_data_func = getattr(attr_val_in_list, to_data_func_name)
+            #         val_dict[name].append(to_data_func())
+            if isinstance(attr_val, Component):
                 # e.g. attr_va.to_data()
                 to_data_func = getattr(attr_val, to_data_func_name)
                 val_dict[name] = to_data_func()
@@ -94,19 +105,11 @@ class SubState(Component):
     @classmethod
     def from_data(cls, data):
         instance = cls()
-        for name, data_class in cls.full_data_spec.items():
+        for name, data_class in cls.__annotations__.items():
             assert name in data, "{} does not present in data.".format(name)
-            if issubclass(data_class, cls):
-                attr_instance = []
-                assert isinstance(
-                    data[name], list
-                ), "Subclass list {} must contain a state component.".format(name)
-                for data_val in data[name]:
-                    data_instance = data_class.from_data(data_val)
-                    attr_instance.append(data_instance)
-            else:
+            if inspect.isclass(data_class) and issubclass(data_class, Component):
                 attr_instance = data_class(data[name])
-            setattr(instance, name, attr_instance)
+                setattr(instance, name, attr_instance)
         return instance
 
 
@@ -167,7 +170,7 @@ class FullState(SubState):
         return self.players[player_id]
 
     def to_player_data(self, player_id: int):
-        all_data = self._to_data_from_spec(self.visible_data_spec)
+        all_data = self._to_data_from_spec(Visibility.SELF)
         all_data["self"] = {}
         all_data["others"] = []
 
@@ -194,7 +197,7 @@ class FullState(SubState):
 
     def get_observation_space(self) -> spaces.Space:
         obs_dict = self._to_data_from_spec(
-            self.visible_data_spec, to_data_func_name="get_observation_space"
+            Visibility.SELF, to_data_func_name="get_observation_space",
         )
 
         example_state = self.players[0]
