@@ -17,7 +17,7 @@ twine = "*"
 gym = "*"
 numpy = "*"
 # Require older version of tensorflow
-tensorflow = "==1.13.1"
+tensorflow = "==1.15.2"
 keras-rl = {ref = "add-multi-agent",git = "https://github.com/dat-boris/keras-rl.git",editable = true}
 wandb = "*"
 
