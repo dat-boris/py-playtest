@@ -8,6 +8,8 @@ autologging = "*"
 pytest-watch = "*"
 mypy = "*"
 black = "==19.10b0"
+pytest-cov = "*"
+codecov = "*"
 
 [packages]
 gym = "*"
@@ -15,7 +17,7 @@ click = "*"
 numpy = "*"
 # Require older version of tensorflow
 tensorflow = "==1.13.1"
-keras-rl = {editable = true,git = "https://github.com/dat-boris/keras-rl.git",ref = "add-multi-agent"}
+keras-rl = {ref = "add-multi-agent",git = "https://github.com/dat-boris/keras-rl.git",editable = true}
 wandb = "*"
 
 [requires]

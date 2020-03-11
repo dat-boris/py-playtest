@@ -12,11 +12,6 @@ python:
 env:
   - SOURCES="playtest pt_blackjack examples"
 
-jobs:
-  include:
-    - install: pipenv install --dev
-      script: black --check --diff $SOURCES
-
 # install packages
 install:
   - pip install pipenv --dev
@@ -24,4 +19,8 @@ install:
 
 # run test
 script:
+  - black --check --diff $SOURCES
   - pytest --cov=playtest
+
+after_success:
+  - codecov # submit coverage
