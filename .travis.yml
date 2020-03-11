@@ -14,12 +14,12 @@ env:
 
 jobs:
   include:
-    - install: pipenv install
+    - install: pipenv install --dev
       script: black --check --diff $SOURCES
 
 # install packages
 install:
-  - pip install pipenv
+  - pip install pipenv --dev
   - pipenv install
 
 # run test
