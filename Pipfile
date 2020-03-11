@@ -10,10 +10,11 @@ mypy = "*"
 black = "==19.10b0"
 pytest-cov = "*"
 codecov = "*"
+pipfile = "*"
+twine = "*"
 
 [packages]
 gym = "*"
-click = "*"
 numpy = "*"
 # Require older version of tensorflow
 tensorflow = "==1.13.1"
