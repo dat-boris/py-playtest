@@ -1,3 +1,4 @@
+import inspect
 from typing import Dict, Type, Sequence, Union
 import numpy as np
 from enum import IntEnum
@@ -64,7 +65,7 @@ class SubState(Component):
 
     def get_observation_space_visible(self) -> spaces.Space:
         obs_dict = self._to_data_from_spec(
-            Visibility.SELF, to_data_func_name="get_observation_space",
+            Visibility.ALL, to_data_func_name="get_observation_space",
         )
         return spaces.Dict(obs_dict)
 
@@ -106,17 +107,9 @@ class SubState(Component):
         instance = cls()
         for name, data_class in cls.__annotations__.items():
             assert name in data, "{} does not present in data.".format(name)
-            if issubclass(data_class, cls):
-                attr_instance = []
-                assert isinstance(
-                    data[name], list
-                ), "Subclass list {} must contain a state component.".format(name)
-                for data_val in data[name]:
-                    data_instance = data_class.from_data(data_val)
-                    attr_instance.append(data_instance)
-            else:
+            if inspect.isclass(data_class) and issubclass(data_class, Component):
                 attr_instance = data_class(data[name])
-            setattr(instance, name, attr_instance)
+                setattr(instance, name, attr_instance)
         return instance
 
 

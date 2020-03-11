@@ -38,6 +38,8 @@ def test_obs_space(env):
     assert isinstance(space, spaces.Tuple)
     assert len(space) == 2, "Observe space contains both action and observation"
     assert space[0]["wait"], "Action space contains wait"
+    assert space[1]["self"]["hand"], "You can see your own hand"
+    assert "hand" not in space[1]["others"][0], "You cannot see other hands"
 
     assert spaces.flatdim(space[1]) == (
         52
