@@ -10,14 +10,12 @@ python:
 
 # for use in linting and static analysis
 env:
-  - SOURCES="playtest pt-blackjack examples setup.py"
+  - SOURCES="playtest pt_blackjack examples"
 
 jobs:
   include:
     - install: pipenv install
-      script: flake8 $SOURCES
-    - install: pip install -r reqs/lint.txt
-      script: black --check $SOURCES
+      script: black --check --diff $SOURCES
 
 # install packages
 install:
