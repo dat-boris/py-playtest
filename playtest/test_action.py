@@ -20,7 +20,6 @@ from .action import (
     ActionRange,
     ActionFactory,
     ActionInstance,
-    ACTION_WAIT,
     ActionWait,
 )
 
@@ -34,7 +33,7 @@ def test_wait_range():
 def test_wait_numpy():
     action_range = ActionWaitRange()
     assert action_range.to_numpy_data().tolist() == [1]
-    action = ACTION_WAIT
+    action = ActionWait()
     assert action.to_numpy_data().tolist() == [1]
 
 

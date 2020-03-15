@@ -55,7 +55,7 @@ class BaseCard(Component):
         return struct
 
     @classmethod
-    def value_to_struct(cls, value:str):
+    def value_to_struct(cls, value: str):
         """A method for converting the value to structure
         """
         return value
@@ -153,8 +153,7 @@ class Deck(Component):
         if all:
             count = len(self)
         for _ in range(count):
-            assert self.cards, \
-                f"Oops - Deck {self.__class__} ran out of card."
+            assert self.cards, f"Oops - Deck {self.__class__} ran out of card."
             other.cards.append(self.cards.pop())
 
     def pop(self, count=1, all=False):

@@ -23,9 +23,6 @@ class ActionInstance:
 
     key: str
 
-    # possible action space for the action
-    action_space = spaces.MultiBinary(1)
-
     def __init__(self):
         raise NotImplementedError()
 
@@ -43,11 +40,17 @@ class ActionInstance:
     def from_str(cls, action_str: str) -> "ActionInstance":
         raise NotImplementedError()
 
+    @classmethod
+    def get_action_space(cls) -> spaces.Space:
+        raise NotImplementedError()
+
     def to_numpy_data(self) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
     def to_numpy_data_null() -> np.ndarray:
+        """Provide a default numpy representation if this action is not taken
+        """
         raise NotImplementedError()
 
     @classmethod
@@ -58,7 +61,7 @@ class ActionInstance:
         raise NotImplementedError()
 
 
-AI = TypeVar('AI', bound=ActionInstance)
+AI = TypeVar("AI", bound=ActionInstance)
 
 
 class ActionRange(Generic[AI]):
@@ -76,8 +79,6 @@ class ActionRange(Generic[AI]):
 
     player_id: int
 
-    action_space_possible = None
-
     def __init__(self, state: FullState, player_id: int):
         self.player_id = player_id
         raise NotImplementedError()
@@ -91,12 +92,16 @@ class ActionRange(Generic[AI]):
     def __eq__(self, x):
         raise NotImplementedError()
 
+    @classmethod
+    def get_action_space_possible(cls) -> spaces.Space:
+        raise NotImplementedError()
+
     def to_numpy_data(self) -> np.ndarray:
         raise NotImplementedError()
 
-    @staticmethod
-    def to_numpy_data_null() -> np.ndarray:
-        raise NotImplementedError()
+    @classmethod
+    def to_numpy_data_null(cls) -> np.ndarray:
+        raise NotImplementedError(f"{cls} is not implemented.")
 
     def is_actionable(self) -> bool:
         """Return if this action is actionable"""
@@ -108,8 +113,6 @@ class ActionRange(Generic[AI]):
 
 class ActionBoolean(ActionInstance):
     """Represent a boolean action"""
-    # possible action space for the action
-    action_space = spaces.MultiBinary(1)
 
     def __init__(self):
         # Only need overriding if there's parameter
@@ -127,6 +130,10 @@ class ActionBoolean(ActionInstance):
         if action_str == cls.key:
             return cls()
         raise InvalidActionError(f"Unknown action: {action_str}")
+
+    @classmethod
+    def get_action_space(cls):
+        return spaces.MultiBinary(1)
 
     def to_numpy_data(self) -> np.ndarray:
         return np.array([1])
@@ -146,7 +153,6 @@ class ActionBoolean(ActionInstance):
 
 class ActionBooleanRange(ActionRange[AI]):
 
-    action_space_possible = spaces.MultiBinary(1)
     actionable: bool
 
     def __repr__(self):
@@ -154,6 +160,10 @@ class ActionBooleanRange(ActionRange[AI]):
 
     def __eq__(self, x):
         return self.__class__ == x.__class__
+
+    @classmethod
+    def get_action_space_possible(cls):
+        return spaces.MultiBinary(1)
 
     def to_numpy_data(self) -> np.ndarray:
         return np.array([1])
@@ -190,10 +200,9 @@ class ActionSingleValue(ActionInstance):
 
     value: int
 
-    # possible action space for the action
-    # Fill in here for subclass. For example:
-    # action_space = spaces.Box(low=0, high=100, shape=(1,), dtype=np.int8)
-    action_space: spaces.Box
+    # Define a minimal value for this action
+    minimum_value: int
+    maximum_value: int
 
     def __init__(self, value: int):
         self.value = value
@@ -212,6 +221,12 @@ class ActionSingleValue(ActionInstance):
             return cls(int(matches.group(1)))
         raise InvalidActionError(f"Unknown action: {action_str}")
 
+    @classmethod
+    def get_action_space(cls):
+        return spaces.Box(
+            low=cls.minimum_value, high=cls.maximum_value, shape=(1,), dtype=np.int8
+        )
+
     def to_numpy_data(self) -> np.ndarray:
         return np.array([self.value])
 
@@ -229,17 +244,11 @@ class ActionSingleValue(ActionInstance):
 
 class ActionSingleValueRange(ActionRange[AI]):
     # Fill in instanceClass here
-    # e.g. instance_class = ActionBet
+    instance_class: Type[AI]
+
     upper: int
     lower: int
     actionable: bool
-
-    min_lower: int
-    max_upper: int
-
-    # Fill in action_class_possible  here
-    # action_space_possible = spaces.Box(
-    #     low=0, high=100, shape=(2,), dtype=np.int8)
 
     def __init__(self, state: FullState, player_id: int):
         raise NotImplementedError()
@@ -254,12 +263,24 @@ class ActionSingleValueRange(ActionRange[AI]):
             and self.lower == x.lower
         )
 
+    @classmethod
+    def get_action_space_possible(cls):
+        """Return two value, represent
+        (high, low)
+        """
+        return spaces.Box(
+            low=cls.instance_class.minimum_value,
+            high=cls.instance_class.maximum_value,
+            shape=(2,),
+            dtype=np.int8,
+        )
+
     def to_numpy_data(self) -> np.ndarray:
         return np.array([self.lower, self.upper])
 
     @classmethod
     def to_numpy_data_null(self) -> np.ndarray:
-        return np.array([self.min_lower, self.max_upper])
+        return np.array([0, 0])
 
     def is_actionable(self) -> bool:
         return self.actionable
@@ -276,6 +297,9 @@ AIS = TypeVar("AIS", bound="ActionSingleValue")
 class ActionValueInSetRange(ActionRange[AIS]):
     values_set: Set[int]
 
+    # Define the maximum number of values possible in set
+    max_values_in_set: int
+
     def __init__(self, state: FullState, player_id: int):
         raise NotImplementedError()
 
@@ -290,6 +314,30 @@ class ActionValueInSetRange(ActionRange[AIS]):
 
     def is_valid(self, action: AIS):
         return action.value in self.values_set
+
+    def value_to_position(self, value) -> int:
+        """Converting a value to int"""
+        raise NotImplementedError()
+
+    def position_to_value(self, pos: int):
+        raise NotImplementedError()
+
+    @classmethod
+    def get_action_space_possible(cls):
+        """Return two value, represent
+        (high, low)
+        """
+        return spaces.MultiBinary(cls.max_values_in_set)
+
+    def to_numpy_data(self) -> np.ndarray:
+        array_value = [0] * self.max_values_in_set
+        for v in self.values_set:
+            array_value[self.value_to_position(v)] = 1
+        return np.array(array_value)
+
+    @classmethod
+    def to_numpy_data_null(self) -> np.ndarray:
+        return np.array([0] * self.max_values_in_set)
 
 
 class ActionFactory:
@@ -341,7 +389,10 @@ class ActionFactory:
 
         """
         return spaces.Dict(
-            {a.instance_class.key: a.action_space_possible for a in self.range_classes}
+            {
+                a.instance_class.key: a.get_action_space_possible()
+                for a in self.range_classes
+            }
         )
 
     def action_range_to_numpy(
@@ -371,6 +422,7 @@ class ActionFactory:
         raise InvalidActionError(f"Unknown action: {action_input}")
 
     def to_numpy(self, action: ActionInstance) -> np.ndarray:
+        """Converting an action instance to numpy."""
         action_dict = {
             a.instance_class.key: a.instance_class.to_numpy_data_null()
             for a in self.range_classes
@@ -382,6 +434,7 @@ class ActionFactory:
         return spaces.flatten(self.action_space, action_dict)
 
     def from_numpy(self, numpy_input: np.ndarray) -> ActionInstance:
+        """Converting from numpy to an action instance."""
         unflattened = spaces.unflatten(self.action_space, numpy_input)
         # Now given the dict, check if any of them are engaged
         err_msgs = []
