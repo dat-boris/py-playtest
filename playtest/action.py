@@ -24,10 +24,10 @@ class ActionInstance:
     key: str
 
     def __init__(self):
-        raise NotImplementedError()
+        pass
 
     def __eq__(self, x):
-        raise NotImplementedError()
+        raise NotImplementedError(f"Action {self.__class__} was not implemented")
 
     def __str__(self) -> str:
         return repr(self)
@@ -81,7 +81,6 @@ class ActionRange(Generic[AI]):
 
     def __init__(self, state: FullState, player_id: int):
         self.player_id = player_id
-        raise NotImplementedError()
 
     def __str__(self):
         return repr(self)
@@ -94,10 +93,10 @@ class ActionRange(Generic[AI]):
 
     @classmethod
     def get_action_space_possible(cls) -> spaces.Space:
-        raise NotImplementedError()
+        raise NotImplementedError(f"{cls} is not implemented")
 
     def to_numpy_data(self) -> np.ndarray:
-        raise NotImplementedError()
+        raise NotImplementedError(f"{self.__class__} is not implemented")
 
     @classmethod
     def to_numpy_data_null(cls) -> np.ndarray:
@@ -250,9 +249,6 @@ class ActionSingleValueRange(ActionRange[AI]):
     lower: int
     actionable: bool
 
-    def __init__(self, state: FullState, player_id: int):
-        raise NotImplementedError()
-
     def __repr__(self):
         return f"{self.instance_class.key}({self.lower}->{self.upper})"
 
@@ -361,7 +357,7 @@ class ActionFactory:
         for a in self.range_classes:
             action_key = a.instance_class.key
             # Note that instance class is an object, we need to work with this
-            action_space = a.instance_class.action_space
+            action_space = a.instance_class.get_action_space()
             assert isinstance(
                 action_space, spaces.Space
             ), f"{action_key} does not have valid action space"

@@ -21,27 +21,30 @@ from .action import (
     ActionFactory,
     ActionInstance,
     ActionWait,
+    ActionBoolean,
+    ActionBooleanRange,
 )
+from .test_state import MockState
 
 
 def test_wait_range():
-    action_range = ActionWaitRange()
-    action = ACTION_WAIT
+    action_range = ActionWaitRange(MockState(), player_id=0)
+    action = ActionWait()
     assert action_range.is_valid(action)
 
 
 def test_wait_numpy():
-    action_range = ActionWaitRange()
+    action_range = ActionWaitRange(MockState(), player_id=0)
     assert action_range.to_numpy_data().tolist() == [1]
     action = ActionWait()
     assert action.to_numpy_data().tolist() == [1]
 
 
-class MockNewAction(ActionInstance):
+class MockNewAction(ActionBoolean):
     key = "new_action"
 
 
-class MockNewActionRange(ActionRange):
+class MockNewActionRange(ActionBooleanRange[MockNewAction]):
     instance_class = MockNewAction
 
 
@@ -64,7 +67,9 @@ def test_action_factory_possible(factory):
 
     assert spaces.flatdim(possible_action_space) == 2
 
-    action_dict = factory.action_range_to_numpy([ActionWaitRange()])
+    action_dict = factory.action_range_to_numpy(
+        [ActionWaitRange(MockState(), player_id=0)]
+    )
     assert action_dict["wait"] == [1]
 
 

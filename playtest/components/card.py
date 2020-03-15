@@ -37,7 +37,7 @@ class BaseCard(Component):
     def __eq__(self, x):
         return (
             self.value == x.value
-            and self.id == x.id
+            and self.uid == x.uid
             and self.test_watermark == x.test_watermark
         )
 
@@ -130,8 +130,10 @@ class Deck(Component):
             assert (
                 cards is not None
             ), "Must pass in cards parameter if not specified all_cards"
-            assert all([isinstance(c, self.generic_card) for c in cards])
-            cards = cards
+            cards = [
+                self.generic_card(c) if not isinstance(c, self.generic_card) else c
+                for c in cards
+            ]
 
         self.init_cards = copy(cards)
         self.max_size = max_size
