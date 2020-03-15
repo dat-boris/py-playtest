@@ -1,7 +1,7 @@
 import logging
 import random
 from copy import copy
-from typing import List, Type, Sequence
+from typing import List, Type, Sequence, Optional, Dict
 
 import numpy as np
 import gym.spaces as spaces
@@ -10,27 +10,55 @@ from .core import Component
 
 
 class BaseCard(Component):
-    """Represent a baseCard to be implemented"""
+    """Represent a baseCard to be implemented
 
+    The most important note is the value of the string,
+    which allows
+    """
+
+    # A serial id which is used to map to a value
+    uid: int
+    # A string that represent the concise description of the card
     value: str
+    # A test wartermark used to test cards being moved in tests
+    test_watermark: Optional[str]
+
     # Represent the total number of unique cards
     # Default to something large
     total_unique_cards: int = 512
 
-    def __init__(self, value: str):
+    def __init__(self, value: str, uid=0, test_watermark=None):
         assert isinstance(value, str)
-        self.value = value
+        # Ensure that value is stored in a canonical format
+        self.value = self.struct_to_value(self.value_to_struct(value))
+        self.uid = uid
+        self.test_watermark = test_watermark
 
     def __eq__(self, x):
-        if isinstance(x, str):
-            return self.value.lower() == x.lower()
-        return self.value.lower() == x.value.lower()
+        return (
+            self.value == x.value
+            and self.id == x.id
+            and self.test_watermark == x.test_watermark
+        )
 
     def __repr__(self):
         return self.value
 
     def reset(self):
         assert False, "Reset should be handled by Deck"
+
+    @classmethod
+    def struct_to_value(cls, struct) -> str:
+        """A method for converting structure value to the value string
+        """
+        assert isinstance(struct, str)
+        return struct
+
+    @classmethod
+    def value_to_struct(cls, value:str):
+        """A method for converting the value to structure
+        """
+        return value
 
     @staticmethod
     def get_all_cards() -> Sequence["BaseCard"]:
@@ -102,7 +130,8 @@ class Deck(Component):
             assert (
                 cards is not None
             ), "Must pass in cards parameter if not specified all_cards"
-            cards = [self.generic_card(c) for c in cards]
+            assert all([isinstance(c, self.generic_card) for c in cards])
+            cards = cards
 
         self.init_cards = copy(cards)
         self.max_size = max_size
@@ -120,9 +149,12 @@ class Deck(Component):
         return [c.to_data() for c in self.cards]
 
     def deal(self, other: "Deck", count=1, all=False):
+        """Deal cards to another deck"""
         if all:
             count = len(self)
         for _ in range(count):
+            assert self.cards, \
+                f"Oops - Deck {self.__class__} ran out of card."
             other.cards.append(self.cards.pop())
 
     def pop(self, count=1, all=False):
@@ -138,6 +170,9 @@ class Deck(Component):
         assert isinstance(other, self.__class__)
         self.cards.remove(card)
         other.cards.append(card)
+
+    def add(self, card: Card):
+        self.cards.append(card)
 
     def remove(self, card: Card):
         self.cards.remove(card)

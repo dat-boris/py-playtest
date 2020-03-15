@@ -1,5 +1,5 @@
 import re
-from typing import Optional, Type, Sequence, Dict
+from typing import Optional, Type, Sequence, Dict, TypeVar, Generic, Set
 
 import numpy as np
 
@@ -16,7 +16,9 @@ class InvalidActionError(RuntimeError):
 
 
 class ActionInstance:
-    """Represent an instance of the action
+    """Represent an instance of the action.
+
+    The instance of the action can be of acted on.
     """
 
     key: str
@@ -25,14 +27,96 @@ class ActionInstance:
     action_space = spaces.MultiBinary(1)
 
     def __init__(self):
+        raise NotImplementedError()
+
+    def __eq__(self, x):
+        raise NotImplementedError()
+
+    def __str__(self) -> str:
+        return repr(self)
+
+    def __repr__(self) -> str:
+        """Create string representation"""
+        raise NotImplementedError(f"Action {self.__class__} was not implemented")
+
+    @classmethod
+    def from_str(cls, action_str: str) -> "ActionInstance":
+        raise NotImplementedError()
+
+    def to_numpy_data(self) -> np.ndarray:
+        raise NotImplementedError()
+
+    @staticmethod
+    def to_numpy_data_null() -> np.ndarray:
+        raise NotImplementedError()
+
+    @classmethod
+    def from_numpy(cls, array: np.ndarray) -> "ActionInstance":
+        raise NotImplementedError()
+
+    def resolve(self, s: FullState, player_id: int, a: Optional[Announcer] = None):
+        raise NotImplementedError()
+
+
+AI = TypeVar('AI', bound=ActionInstance)
+
+
+class ActionRange(Generic[AI]):
+    """Represent a range of action
+
+    The action range is responsible for representing a set of potential
+    actions, and checking if an action is valid, based on the state
+    provided for a specific player.
+
+    Note that the range of action, might not be finite.  For example in a betting
+    game, you can bet upwards to your bank amount, which could be infinite.
+    """
+
+    instance_class: Type[AI]
+
+    player_id: int
+
+    action_space_possible = None
+
+    def __init__(self, state: FullState, player_id: int):
+        self.player_id = player_id
+        raise NotImplementedError()
+
+    def __str__(self):
+        return repr(self)
+
+    def __repr__(self):
+        raise NotImplementedError(f"{self.__class__} is not implemented")
+
+    def __eq__(self, x):
+        raise NotImplementedError()
+
+    def to_numpy_data(self) -> np.ndarray:
+        raise NotImplementedError()
+
+    @staticmethod
+    def to_numpy_data_null() -> np.ndarray:
+        raise NotImplementedError()
+
+    def is_actionable(self) -> bool:
+        """Return if this action is actionable"""
+        raise NotImplementedError()
+
+    def is_valid(self, x: AI) -> bool:
+        raise NotImplementedError()
+
+
+class ActionBoolean(ActionInstance):
+    """Represent a boolean action"""
+    # possible action space for the action
+    action_space = spaces.MultiBinary(1)
+
+    def __init__(self):
         # Only need overriding if there's parameter
         pass
 
     def __eq__(self, x):
-        return isinstance(x, self.__class__) and self.key == x.key
-
-    def __str__(self) -> str:
-        return repr(self)
+        return isinstance(x, self.__class__)
 
     def __repr__(self) -> str:
         """Create string representation"""
@@ -59,25 +143,14 @@ class ActionInstance:
             return cls()
         raise ValueError(f"Unknown value {array} for {cls}")
 
-    def resolve(self, s: FullState, player_id: int, a: Optional[Announcer] = None):
-        raise NotImplementedError()
 
-
-class ActionRange:
-    """Represent a range of action"""
-
-    instance_class: Type[ActionInstance]
+class ActionBooleanRange(ActionRange[AI]):
 
     action_space_possible = spaces.MultiBinary(1)
-
-    def __init__(self):
-        pass
-
-    def __str__(self):
-        return repr(self)
+    actionable: bool
 
     def __repr__(self):
-        return f"{self.instance_class.key}"
+        return f"{self.instance_class.key}" if self.actionable else ""
 
     def __eq__(self, x):
         return self.__class__ == x.__class__
@@ -89,20 +162,27 @@ class ActionRange:
     def to_numpy_data_null() -> np.ndarray:
         return np.array([0])
 
+    def is_actionable(self) -> bool:
+        return self.actionable
+
     def is_valid(self, x: ActionInstance) -> bool:
         return isinstance(x, self.instance_class)
 
 
-class ActionWait(ActionInstance):
+class ActionWait(ActionBoolean):
     key = "wait"
 
+    def resolve(self, state):
+        pass
 
-class ActionWaitRange(ActionRange):
+
+class ActionWaitRange(ActionBooleanRange[ActionWait]):
     instance_class = ActionWait
 
+    actionable = True
 
-# Sentinel Action instance for comparison
-ACTION_WAIT = ActionWait()
+    def __init__(self, state, player_id):
+        pass
 
 
 class ActionSingleValue(ActionInstance):
@@ -115,8 +195,8 @@ class ActionSingleValue(ActionInstance):
     # action_space = spaces.Box(low=0, high=100, shape=(1,), dtype=np.int8)
     action_space: spaces.Box
 
-    def __init__(self, value: str):
-        self.value = int(value)
+    def __init__(self, value: int):
+        self.value = value
 
     def __repr__(self):
         return f"{self.key}({self.value})"
@@ -129,7 +209,7 @@ class ActionSingleValue(ActionInstance):
         action_key = cls.key
         matches = re.match(f"{action_key}[(](\\d+)[)]", action_str)
         if matches:
-            return cls(matches.group(1))
+            return cls(int(matches.group(1)))
         raise InvalidActionError(f"Unknown action: {action_str}")
 
     def to_numpy_data(self) -> np.ndarray:
@@ -147,11 +227,12 @@ class ActionSingleValue(ActionInstance):
         return cls(array[0])
 
 
-class ActionSingleValueRange(ActionRange):
+class ActionSingleValueRange(ActionRange[AI]):
     # Fill in instanceClass here
     # e.g. instance_class = ActionBet
     upper: int
     lower: int
+    actionable: bool
 
     min_lower: int
     max_upper: int
@@ -160,9 +241,8 @@ class ActionSingleValueRange(ActionRange):
     # action_space_possible = spaces.Box(
     #     low=0, high=100, shape=(2,), dtype=np.int8)
 
-    def __init__(self, lower, upper):
-        self.upper = upper
-        self.lower = lower
+    def __init__(self, state: FullState, player_id: int):
+        raise NotImplementedError()
 
     def __repr__(self):
         return f"{self.instance_class.key}({self.lower}->{self.upper})"
@@ -181,10 +261,35 @@ class ActionSingleValueRange(ActionRange):
     def to_numpy_data_null(self) -> np.ndarray:
         return np.array([self.min_lower, self.max_upper])
 
+    def is_actionable(self) -> bool:
+        return self.actionable
+
     def is_valid(self, x) -> bool:
         if isinstance(x, self.instance_class):
             return self.lower <= x.value <= self.upper  # type: ignore
         return False
+
+
+AIS = TypeVar("AIS", bound="ActionSingleValue")
+
+
+class ActionValueInSetRange(ActionRange[AIS]):
+    values_set: Set[int]
+
+    def __init__(self, state: FullState, player_id: int):
+        raise NotImplementedError()
+
+    def __repr__(self):
+        if not self.values_set:
+            return ""
+        valid_value_str = ",".join([str(v) for v in sorted(self.values_set)])
+        return f"{self.instance_class.key}([{valid_value_str}])"
+
+    def is_actionable(self):
+        return bool(self.values_set)
+
+    def is_valid(self, action: AIS):
+        return action.value in self.values_set
 
 
 class ActionFactory:
