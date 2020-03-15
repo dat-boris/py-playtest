@@ -136,11 +136,12 @@ class GameWrapperEnvironment(gym.Env):
                         action_to_send = action
                         break
                 if action_to_send is None:
+                    logging.warning(f"🙅‍♂️ Action {action} is not valid.")
                     self.continuous_invalid_inputs.append(action)
                     rewards[player_id] = Reward.INVALID_ACTION
 
             else:
-                # Make sure for other player, the action is appropriate
+                # Make sure for  other player, the action is appropriate
                 # If it is not their turn and they move, punish!
                 expected_default_action: ActionInstance = self.action_factory.default
                 if action != expected_default_action:
@@ -231,7 +232,9 @@ class HumanAgent(Agent):
             try:
                 given_action = input(prompt)
                 chosen_action = env.action_factory.from_str(given_action)
+                print(f"😋 Chosen action: {chosen_action}")
             except InvalidActionError as e:
+                print("🙅‍♂️ Invalid action.")
                 print(str(e))
 
         # Now from the chosen action, convert back to np.ndarray

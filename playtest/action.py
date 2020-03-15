@@ -38,14 +38,14 @@ class ActionInstance:
 
     @classmethod
     def from_str(cls, action_str: str) -> "ActionInstance":
-        raise NotImplementedError()
+        raise NotImplementedError(f"Action {cls} was not implemented")
 
     @classmethod
     def get_action_space(cls) -> spaces.Space:
-        raise NotImplementedError()
+        raise NotImplementedError(f"Action {cls} was not implemented")
 
     def to_numpy_data(self) -> np.ndarray:
-        raise NotImplementedError()
+        raise NotImplementedError(f"Action {self.__class__} was not implemented")
 
     @staticmethod
     def to_numpy_data_null() -> np.ndarray:
@@ -55,7 +55,7 @@ class ActionInstance:
 
     @classmethod
     def from_numpy(cls, array: np.ndarray) -> "ActionInstance":
-        raise NotImplementedError()
+        raise NotImplementedError(f"Action {cls} was not implemented")
 
     def resolve(self, s: FullState, player_id: int, a: Optional[Announcer] = None):
         raise NotImplementedError()
@@ -76,11 +76,13 @@ class ActionRange(Generic[AI]):
     """
 
     instance_class: Type[AI]
+    actionable: bool
 
     player_id: int
 
     def __init__(self, state: FullState, player_id: int):
         self.player_id = player_id
+        self.actionable = True
 
     def __str__(self):
         return repr(self)
@@ -151,8 +153,6 @@ class ActionBoolean(ActionInstance):
 
 
 class ActionBooleanRange(ActionRange[AI]):
-
-    actionable: bool
 
     def __repr__(self):
         return f"{self.instance_class.key}" if self.actionable else ""
@@ -238,7 +238,7 @@ class ActionSingleValue(ActionInstance):
         """Check if value is acceptable"""
         assert len(array) == 1
         assert array[0] > 0, "Must provide positive bet value"
-        return cls(array[0])
+        return cls(int(array[0]))
 
 
 class ActionSingleValueRange(ActionRange[AI]):
