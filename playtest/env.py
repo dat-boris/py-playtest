@@ -141,7 +141,7 @@ class GameWrapperEnvironment(gym.Env):
                     rewards[player_id] = Reward.INVALID_ACTION
 
             else:
-                # Make sure for  other player, the action is appropriate
+                # Make sure for other player, the action is appropriate
                 # If it is not their turn and they move, punish!
                 expected_default_action: ActionInstance = self.action_factory.default
                 if action != expected_default_action:
