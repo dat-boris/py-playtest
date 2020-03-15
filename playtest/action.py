@@ -149,11 +149,10 @@ class ActionBoolean(ActionInstance):
         assert len(array) == 1
         if array[0] == 1:
             return cls()
-        raise ValueError(f"Unknown value {array} for {cls}")
+        raise InvalidActionError(f"Unknown value {array} for {cls}")
 
 
 class ActionBooleanRange(ActionRange[AI]):
-
     def __repr__(self):
         return f"{self.instance_class.key}" if self.actionable else ""
 
@@ -231,13 +230,14 @@ class ActionSingleValue(ActionInstance):
 
     @staticmethod
     def to_numpy_data_null() -> np.ndarray:
-        return np.array([0])
+        return np.array([-1])
 
     @classmethod
     def from_numpy(cls, array: np.ndarray) -> ActionInstance:
         """Check if value is acceptable"""
         assert len(array) == 1
-        assert array[0] > 0, "Must provide positive bet value"
+        if array[0] < 0:
+            raise InvalidActionError("Must provide positive bet value")
         return cls(int(array[0]))
 
 
@@ -313,10 +313,10 @@ class ActionValueInSetRange(ActionRange[AIS]):
 
     def value_to_position(self, value) -> int:
         """Converting a value to int"""
-        raise NotImplementedError()
+        raise NotImplementedError(self.__class__.__name__)
 
     def position_to_value(self, pos: int):
-        raise NotImplementedError()
+        raise NotImplementedError(self.__class__.__name__)
 
     @classmethod
     def get_action_space_possible(cls):
@@ -438,7 +438,7 @@ class ActionFactory:
             numpy_val = unflattened[a.instance_class.key]
             try:
                 return a.instance_class.from_numpy(numpy_val)
-            except (ValueError, AssertionError) as e:
+            except (ValueError, AssertionError, InvalidActionError) as e:
                 err_msgs.append(str(e))
         raise InvalidActionError(
             f"Invalid action input: {numpy_input}.  Msg: {err_msgs}"

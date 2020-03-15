@@ -17,7 +17,7 @@ class BaseCard(Component):
     """
 
     # A serial id which is used to map to a value
-    uid: int
+    uid: Optional[int]
     # A string that represent the concise description of the card
     value: str
     # A test wartermark used to test cards being moved in tests
@@ -27,7 +27,7 @@ class BaseCard(Component):
     # Default to something large
     total_unique_cards: int = 512
 
-    def __init__(self, value: str, uid=0, test_watermark=None):
+    def __init__(self, value: str, uid=None, test_watermark=None):
         assert isinstance(value, str)
         # Ensure that value is stored in a canonical format
         self.value = self.struct_to_value(self.value_to_struct(value))
@@ -65,7 +65,7 @@ class BaseCard(Component):
         raise NotImplementedError()
 
     def to_data(self):
-        return self.value
+        return self.value + (f" [{self.uid}]" if self.uid is not None else "")
 
     def to_numpy_data(self) -> int:
         # logging.warn(f"class {self.__class__} has not implemented to_numpy_data")
@@ -126,6 +126,8 @@ class Deck(Component):
         if all_cards:
             cards = self.generic_card.get_all_cards()
             assert cards is not None, "Ensure we have cards!"
+            if shuffle:
+                random.shuffle(cards)
         else:
             assert (
                 cards is not None
@@ -144,8 +146,6 @@ class Deck(Component):
         # We use init_cards to ensure that when we reset, we still
         # keep the same set of cards ready
         self.cards = copy(self.init_cards)
-        if self.shuffle:
-            random.shuffle(self.cards)
 
     def to_data(self):
         return [c.to_data() for c in self.cards]
