@@ -30,7 +30,7 @@ def test_start(game: Blackjack):
     # ability to forward the generator
     player_id, possible_actions, _ = next(game_gen)
     assert player_id == game.players[0].id
-    assert possible_actions == [ActionBetRange(0, game.param.starting_pot)]
+    assert possible_actions == [ActionBetRange(s, player_id)]
 
 
 def test_round(game: Blackjack):
@@ -41,14 +41,17 @@ def test_round(game: Blackjack):
     player_id, possible_actions, _ = next(game_gen)
 
     assert player_id == game.players[0].id
-    assert possible_actions == [ActionBetRange(0, 10)]
+    assert possible_actions == [ActionBetRange(s, player_id)]
     assert (
         len(s.get_player_state(player_id).hand) == 2
     ), "Player should start with two cards"
 
-    player_id, possible_actions, _ = game_gen.send(ActionBet("2"))
+    player_id, possible_actions, _ = game_gen.send(ActionBet(2))
     assert player_id == 0
-    assert possible_actions == [ActionHitRange(), ActionSkipRange()]
+    assert possible_actions == [
+        ActionHitRange(s, player_id),
+        ActionSkipRange(s, player_id),
+    ]
     player_state: PlayerState = s.get_player_state(player_id)
     assert player_state.bet.amount == 2
     assert player_state.bank.amount == 8

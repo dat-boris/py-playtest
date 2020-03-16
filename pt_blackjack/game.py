@@ -5,17 +5,17 @@ import numpy as np
 
 import gym.spaces as spaces
 
+from playtest.action import ActionInstance, ActionRange
+
 from playtest.game import Game, Player
-from .state import State, PlayerState
-from .constant import Param, Reward
-from .action import (
+from pt_blackjack.state import State, PlayerState
+from pt_blackjack.constant import Param, Reward
+from pt_blackjack.action import (
     ActionFactory,
     ActionBetRange,
     ACTION_HIT,
     ACTION_SKIP,
     ActionBet,
-    ActionInstance,
-    ActionRange,
     ActionHitRange,
     ActionSkipRange,
 )
@@ -84,8 +84,7 @@ class Blackjack(Game[State, ActionFactory, Param]):
         self.s.deck.deal(player_state.hand, 2)
 
         self.a.ask("How much you want to bet?")
-        player_bank: int = player_state.bank.amount
-        accepted_action: Sequence[ActionRange] = [ActionBetRange(0, player_bank)]
+        accepted_action: Sequence[ActionRange] = [ActionBetRange(self.state, p.id)]
         bet_value = None
         bet = yield from self.get_player_action(p.id, accepted_action)
         assert isinstance(bet, ActionBet)
@@ -101,7 +100,10 @@ class Blackjack(Game[State, ActionFactory, Param]):
         self.a.ask("Do you want to hit or pass?")
         while action != ACTION_SKIP and hit_rounds <= self.param.max_hits:
             # Note that this is class of action, while returned would be an instance
-            accepted_action = [ActionHitRange(), ActionSkipRange()]
+            accepted_action = [
+                ActionHitRange(self.state, p.id),
+                ActionSkipRange(self.state, p.id),
+            ]
             action = yield from self.get_player_action(p.id, accepted_action)
             self.a.say(f"Player {p.id} round {hit_rounds}: {action}")
             assert any(

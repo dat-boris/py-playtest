@@ -131,11 +131,12 @@ class GameWrapperEnvironment(gym.Env):
             assert isinstance(action, ActionInstance)
             # logging.warning(f"Player {player_id} got action: {action}")
             if player_id == self.next_player:
-                for action_range in self.next_accepted_action:
-                    if action_range.is_valid(action):
-                        action_to_send = action
-                        break
-                if action_to_send is None:
+                if self.action_factory.is_valid_from_range(
+                    action, self.next_accepted_action
+                ):
+                    action_to_send = action
+                else:
+                    logging.warning(f"🙅‍♂️ Action {action} is not valid.")
                     self.continuous_invalid_inputs.append(action)
                     rewards[player_id] = Reward.INVALID_ACTION
 
@@ -231,7 +232,9 @@ class HumanAgent(Agent):
             try:
                 given_action = input(prompt)
                 chosen_action = env.action_factory.from_str(given_action)
+                print(f"😋 Chosen action: {chosen_action}")
             except InvalidActionError as e:
+                print("🙅‍♂️ Invalid action.")
                 print(str(e))
 
         # Now from the chosen action, convert back to np.ndarray
@@ -281,10 +284,10 @@ class EnvironmentInteration:
                 )
                 action_n = [default_numpy_action] * env.n_agents
 
-                print(f"Player {player_id} taking action...")
+                # print(f"Player {player_id+1} taking action...")
 
                 action_taken = self.agents[player_id].forward(obs_n[player_id])
-                print(f"Action taken: {action_taken}")
+                # print(f"Action taken: {action_taken}")
                 assert isinstance(
                     action_taken, np.ndarray
                 ), "Forward agent should return an ndarray. (Got: {action_taken.__class__})"

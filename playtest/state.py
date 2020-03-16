@@ -133,6 +133,10 @@ class FullState(SubState):
             for _ in range(param.number_of_players):
                 self.players.append(self.player_state_class(param))
 
+    @property
+    def number_of_players(self):
+        return len(self.players)
+
     def reset(self):
         super().reset()
         for player_state in self.players:

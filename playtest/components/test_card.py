@@ -1,4 +1,4 @@
-from .card import Deck
+from playtest.components.card import Card, Deck
 
 
 def test_card_deal():
@@ -6,12 +6,12 @@ def test_card_deal():
     deck2 = Deck([])
 
     deck1.deal(deck2, count=2)
-    expected = Deck(["Kc", "Kd"]).to_data()
+    expected = Deck([Card(c) for c in ["Kc", "Kd"]]).to_data()
     assert deck2.to_data() == expected
 
 
 def test_card_value():
-    deck = Deck(["Tc", "Ac"])
+    deck = Deck([Card(c) for c in ["Tc", "Ac"]])
     assert sum([c.number for c in deck]) == 11
 
 
@@ -21,7 +21,7 @@ def test_reset():
     deck.reset()
     assert len(deck) == 52
 
-    deck = Deck(["Ad", "Qs"])
+    deck = Deck([Card(c) for c in ["Ad", "Qs"]])
     assert len(deck) == 2
     deck.reset()
-    assert deck[0] == "Ad"
+    assert deck[0] == Card("Ad")

@@ -73,11 +73,12 @@ def test_invalid_action(env: GameWrapperEnvironment):
     And also observation should represent the accepted action
     """
     env.reset()
-    assert env.next_accepted_action == [ActionBetRange(0, 10)]
+    state = env.game.s
+    assert env.next_accepted_action == [ActionBetRange(state, player_id=0)]
     assert env.next_player == 0
 
     hit_numpy_value = env.action_factory.to_numpy(ActionHit())
-    bet3_numpy_value = env.action_factory.to_numpy(ActionBet("3"))
+    bet3_numpy_value = env.action_factory.to_numpy(ActionBet(3))
     wait_numpy_value = env.action_factory.to_numpy(ActionWait())
 
     obs, reward, _, _ = env.step([hit_numpy_value, bet3_numpy_value])
@@ -95,11 +96,12 @@ def test_invalid_action(env: GameWrapperEnvironment):
 def test_continuous_invalid_action(env: GameWrapperEnvironment):
     """Ensure that continuous invalid action will lead to termination"""
     env.reset()
-    assert env.next_accepted_action == [ActionBetRange(0, 10)]
+    state = env.game.s
+    assert env.next_accepted_action == [ActionBetRange(state, player_id=0)]
     assert env.next_player == 0
     termination = [False, False]
     hit_numpy_value = env.action_factory.to_numpy(ActionHit())
-    bet3_numpy_value = env.action_factory.to_numpy(ActionBet("3"))
+    bet3_numpy_value = env.action_factory.to_numpy(ActionBet(3))
 
     for _ in range(env.max_continuous_invalid_inputs):
         obs, reward, termination, _ = env.step([hit_numpy_value, bet3_numpy_value])
@@ -111,13 +113,14 @@ def test_step(env: GameWrapperEnvironment):
     env.reset()
 
     action_factory = env.action_factory
+    state = env.game.s
 
     # Note round 1: only one agent we care about!
     assert env.next_player == 0
-    assert env.next_accepted_action == [ActionBetRange(0, 10)]
+    assert env.next_accepted_action == [ActionBetRange(state, player_id=0)]
 
     hit_numpy_value = env.action_factory.to_numpy(ActionHit())
-    bet1_numpy_value = env.action_factory.to_numpy(ActionBet("1"))
+    bet1_numpy_value = env.action_factory.to_numpy(ActionBet(1))
     wait_numpy_value = env.action_factory.to_numpy(ActionWait())
 
     obs, reward, terminal, info = env.step([bet1_numpy_value, wait_numpy_value])
@@ -134,7 +137,10 @@ def test_step(env: GameWrapperEnvironment):
 
     # Now we need to action again
     assert env.next_player == 0
-    assert env.next_accepted_action == [ActionHitRange(), ActionSkipRange()]
+    assert env.next_accepted_action == [
+        ActionHitRange(state, 0),
+        ActionSkipRange(state, 0),
+    ]
     obs, reward, terminal, info = env.step([hit_numpy_value, wait_numpy_value,])
     assert len(obs) == AGENT_COUNT
     assert len(reward) == AGENT_COUNT
