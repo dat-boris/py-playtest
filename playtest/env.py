@@ -131,11 +131,11 @@ class GameWrapperEnvironment(gym.Env):
             assert isinstance(action, ActionInstance)
             # logging.warning(f"Player {player_id} got action: {action}")
             if player_id == self.next_player:
-                for action_range in self.next_accepted_action:
-                    if action_range.is_valid(action):
-                        action_to_send = action
-                        break
-                if action_to_send is None:
+                if self.action_factory.is_valid_from_range(
+                    action, self.next_accepted_action
+                ):
+                    action_to_send = action
+                else:
                     logging.warning(f"🙅‍♂️ Action {action} is not valid.")
                     self.continuous_invalid_inputs.append(action)
                     rewards[player_id] = Reward.INVALID_ACTION

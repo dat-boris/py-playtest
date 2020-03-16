@@ -180,7 +180,7 @@ class ActionBooleanRange(ActionRange[AI]):
 class ActionWait(ActionBoolean):
     key = "wait"
 
-    def resolve(self, state):
+    def resolve(self, state, player_id: int, a=None):
         pass
 
 
@@ -407,6 +407,16 @@ class ActionFactory:
             action_possible_dict[action_key] = a.to_numpy_data()
 
         return action_possible_dict
+
+    def is_valid_from_range(
+        self, action: ActionInstance, action_ranges: Sequence[ActionRange]
+    ):
+        for action_range in action_ranges:
+            if isinstance(
+                action, action_range.instance_class
+            ) and action_range.is_valid(action):
+                return True
+        return False
 
     def from_str(self, action_input: str) -> ActionInstance:
         """Tokenize input from string into ActionInstance"""
