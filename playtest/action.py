@@ -354,10 +354,10 @@ class ActionFactory(Generic[S]):
 
     def get_actionable_actions(self, s: S, player_id: int) -> Sequence[ActionRange]:
         acceptable_action = []
-        for action_class in self.range_classes:
-            action = action_class(s, player_id=player_id)
-            if action.is_actionable():
-                acceptable_action.append(action)
+        for range_class in self.range_classes:
+            action_range = range_class(s, player_id=player_id)
+            if action_range.is_actionable():
+                acceptable_action.append(action_range)
         return acceptable_action
 
     @property
@@ -447,10 +447,13 @@ class ActionFactory(Generic[S]):
             a.instance_class.key: a.instance_class.to_numpy_data_null()
             for a in self.range_classes
         }
+        found_action = False
         for action_range in self.range_classes:
             action_expected = action_range.instance_class
             if action.__class__ is action_expected:
                 action_dict[action_expected.key] = action.to_numpy_data()
+                found_action = True
+        assert found_action, f"Must contain at least one suitable action: {action}"
         return spaces.flatten(self.action_space, action_dict)
 
     def from_numpy(self, numpy_input: np.ndarray) -> ActionInstance:
