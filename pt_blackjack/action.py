@@ -13,19 +13,19 @@ from playtest.action import (
 )
 
 
-class ActionHit(ActionBoolean):
+class ActionHit(ActionBoolean[State]):
     key = "hit"
 
 
-class ActionHitRange(ActionBooleanRange[ActionHit]):
+class ActionHitRange(ActionBooleanRange[ActionHit, State]):
     instance_class = ActionHit
 
 
-class ActionSkip(ActionBoolean):
+class ActionSkip(ActionBoolean[State]):
     key = "skip"
 
 
-class ActionSkipRange(ActionBooleanRange[ActionSkip]):
+class ActionSkipRange(ActionBooleanRange[ActionSkip, State]):
     instance_class = ActionSkip
 
 
@@ -34,14 +34,14 @@ ACTION_SKIP = ActionSkip()
 ACTION_HIT = ActionHit()
 
 
-class ActionBet(ActionSingleValue):
+class ActionBet(ActionSingleValue[State]):
     key = "bet"
 
     minimum_value = 0
     maximum_value = 0xFF
 
 
-class ActionBetRange(ActionSingleValueRange[ActionBet]):
+class ActionBetRange(ActionSingleValueRange[ActionBet, State]):
     instance_class = ActionBet
 
     def __init__(self, state: State, player_id: int):

@@ -180,7 +180,7 @@ class ActionBooleanRange(ActionRange[AI, S]):
         return isinstance(x, self.instance_class)
 
 
-class ActionWait(ActionBoolean):
+class ActionWait(ActionBoolean[S]):
     key = "wait"
 
     def resolve(self, state, player_id: int, a=None):
@@ -196,7 +196,7 @@ class ActionWaitRange(ActionBooleanRange[ActionWait, S]):
         pass
 
 
-class ActionSingleValue(ActionInstance):
+class ActionSingleValue(ActionInstance[S]):
     """A base class for single value action"""
 
     value: int
@@ -244,9 +244,12 @@ class ActionSingleValue(ActionInstance):
         return cls(int(array[0]))
 
 
-class ActionSingleValueRange(ActionRange[AI, S]):
+ASV = TypeVar("ASV", bound=ActionSingleValue)
+
+
+class ActionSingleValueRange(ActionRange[ASV, S]):
     # Fill in instanceClass here
-    instance_class: Type[AI]
+    instance_class: Type[ASV]
 
     upper: int
     lower: int
@@ -286,7 +289,7 @@ class ActionSingleValueRange(ActionRange[AI, S]):
 
     def is_valid(self, x) -> bool:
         if isinstance(x, self.instance_class):
-            return self.lower <= x.value <= self.upper  # type: ignore
+            return self.lower <= x.value <= self.upper
         return False
 
 
