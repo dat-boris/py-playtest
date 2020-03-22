@@ -114,8 +114,7 @@ class Game(Generic[S, AF, P]):
                 self.state, player_id, accepted_range=accepted_range
             )
         else:
-            warnings.warn("accepted_action will be removed",
-                          DeprecationWarning)
+            warnings.warn("accepted_action will be removed", DeprecationWarning)
         action = yield (player_id, accepted_action, self.last_player_reward)
         return action
 
