@@ -8,6 +8,7 @@ class Param:
 class Reward:
     """A constant class represent various rewards"""
 
+    DEFAULT = 0
     INVALID_ACTION = -10
     VALID_ACTION = 1
     WINNER = 100

@@ -40,11 +40,11 @@ def test_wait_numpy():
     assert action.to_numpy_data().tolist() == [1]
 
 
-class MockNewAction(ActionBoolean):
+class MockNewAction(ActionBoolean[MockState]):
     key = "new_action"
 
 
-class MockNewActionRange(ActionBooleanRange[MockNewAction]):
+class MockNewActionRange(ActionBooleanRange[MockNewAction, MockState]):
     instance_class = MockNewAction
 
 

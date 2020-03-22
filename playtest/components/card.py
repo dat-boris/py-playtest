@@ -1,7 +1,7 @@
 import logging
 import random
 from copy import copy
-from typing import List, Type, Sequence, Optional, Dict
+from typing import List, Type, Sequence, Optional, Dict, Generic, TypeVar
 
 import numpy as np
 import gym.spaces as spaces
@@ -108,14 +108,17 @@ class Card(BaseCard):
         return 1 + self.number * 4 + Card.all_suites.index(self.suite)
 
 
-class Deck(Component):
+C = TypeVar("C", bound=Card)
+
+
+class Deck(Component, Generic[C]):
 
     # This can be overridden to a specific Card type.
     # Note that the card must implement the method above.
-    generic_card: Type[BaseCard] = Card
+    generic_card: Type[C]
 
-    cards: List[BaseCard]
-    init_cards: List[BaseCard]
+    cards: List[C]
+    init_cards: List[C]
     shuffle: bool
     max_size: int
 
@@ -123,6 +126,9 @@ class Deck(Component):
         return "{}...".format(str(self.cards[5:]))
 
     def __init__(self, cards=None, shuffle=False, all_cards=False, max_size=52):
+        assert getattr(
+            self, "generic_card", None
+        ), f"Class {self.__class__} have not specificed generic_card"
         if all_cards:
             cards = self.generic_card.get_all_cards()
             assert cards is not None, "Ensure we have cards!"
@@ -158,7 +164,7 @@ class Deck(Component):
             assert self.cards, f"Oops - Deck {self.__class__} ran out of card."
             other.cards.append(self.cards.pop())
 
-    def pop(self, count=1, all=False):
+    def pop(self, count=1, all=False) -> List[C]:
         if all:
             count = len(self)
         cards_popped = []
@@ -166,16 +172,16 @@ class Deck(Component):
             cards_popped.append(self.cards.pop())
         return cards_popped
 
-    def move_to(self, other: "Deck", card: Card):
+    def move_to(self, other: "Deck", card: C):
         """Move a specific card to other deck"""
         assert isinstance(other, self.__class__)
         self.cards.remove(card)
         other.cards.append(card)
 
-    def add(self, card: Card):
+    def add(self, card: C):
         self.cards.append(card)
 
-    def remove(self, card: Card):
+    def remove(self, card: C):
         self.cards.remove(card)
 
     def __len__(self):
@@ -203,3 +209,7 @@ class Deck(Component):
         return np.array(
             value_array + [0] * (self.max_size - len(value_array)), dtype=np.uint8
         )
+
+
+class BasicDeck(Deck):
+    generic_card = Card

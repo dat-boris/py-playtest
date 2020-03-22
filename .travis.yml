@@ -20,6 +20,7 @@ install:
 # run test
 script:
   - black --check --diff $SOURCES
+  - mypy $SOURCES --ignore-missing-imports
   - pytest --cov=playtest
 
 after_success:
