@@ -46,6 +46,10 @@ class Game(Generic[S, AF, P]):
     def __init__(self, param: P):
         self.param = param
         self.announcer = Announcer()
+        self.last_player_reward = Reward.DEFAULT
+        if getattr(self, "players", None) is None:
+            assert param.number_of_players > 0, "Must have some players!"
+            self.players = [Player(i) for i in range(param.number_of_players)]
         assert self.state, "Must set state before init"
         assert self.action_factory, "Must set action before init"
 
@@ -90,7 +94,7 @@ class Game(Generic[S, AF, P]):
         self.last_player_reward = reward
 
     def get_player_action(
-        self, player_id: int, accepted_action: Sequence[ActionRange]
+        self, player_id: int, accepted_action: Optional[Sequence[ActionRange]] = None
     ) -> Generator[
         # return: player_id, possible action, last_player_reward
         Tuple[int, Sequence[ActionRange], int],
@@ -101,6 +105,10 @@ class Game(Generic[S, AF, P]):
 
         Note that we must use yield from to call this function
         """
+        if accepted_action is None:
+            accepted_action = self.action_factory.get_actionable_actions(
+                self.state, player_id
+            )
         action = yield (player_id, accepted_action, self.last_player_reward)
         return action
 

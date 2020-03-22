@@ -15,7 +15,10 @@ class InvalidActionError(RuntimeError):
     pass
 
 
-class ActionInstance:
+S = TypeVar("S", bound=FullState)
+
+
+class ActionInstance(Generic[S]):
     """Represent an instance of the action.
 
     The instance of the action can be of acted on.
@@ -57,14 +60,14 @@ class ActionInstance:
     def from_numpy(cls, array: np.ndarray) -> "ActionInstance":
         raise NotImplementedError(f"Action {cls} was not implemented")
 
-    def resolve(self, s: FullState, player_id: int, a: Optional[Announcer] = None):
+    def resolve(self, s: S, player_id: int, a: Optional[Announcer] = None):
         raise NotImplementedError()
 
 
 AI = TypeVar("AI", bound=ActionInstance)
 
 
-class ActionRange(Generic[AI]):
+class ActionRange(Generic[AI, S]):
     """Represent a range of action
 
     The action range is responsible for representing a set of potential
@@ -80,7 +83,7 @@ class ActionRange(Generic[AI]):
 
     player_id: int
 
-    def __init__(self, state: FullState, player_id: int):
+    def __init__(self, state: S, player_id: int):
         self.player_id = player_id
         self.actionable = True
 
@@ -112,7 +115,7 @@ class ActionRange(Generic[AI]):
         raise NotImplementedError()
 
 
-class ActionBoolean(ActionInstance):
+class ActionBoolean(ActionInstance[S]):
     """Represent a boolean action"""
 
     def __init__(self):
@@ -152,7 +155,7 @@ class ActionBoolean(ActionInstance):
         raise InvalidActionError(f"Unknown value {array} for {cls}")
 
 
-class ActionBooleanRange(ActionRange[AI]):
+class ActionBooleanRange(ActionRange[AI, S]):
     def __repr__(self):
         return f"{self.instance_class.key}" if self.actionable else ""
 
@@ -184,7 +187,7 @@ class ActionWait(ActionBoolean):
         pass
 
 
-class ActionWaitRange(ActionBooleanRange[ActionWait]):
+class ActionWaitRange(ActionBooleanRange[ActionWait, S]):
     instance_class = ActionWait
 
     actionable = True
@@ -241,7 +244,7 @@ class ActionSingleValue(ActionInstance):
         return cls(int(array[0]))
 
 
-class ActionSingleValueRange(ActionRange[AI]):
+class ActionSingleValueRange(ActionRange[AI, S]):
     # Fill in instanceClass here
     instance_class: Type[AI]
 
@@ -290,13 +293,13 @@ class ActionSingleValueRange(ActionRange[AI]):
 AIS = TypeVar("AIS", bound="ActionSingleValue")
 
 
-class ActionValueInSetRange(ActionRange[AIS]):
+class ActionValueInSetRange(ActionRange[AIS, S]):
     values_set: Set[int]
 
     # Define the maximum number of values possible in set
     max_values_in_set: int
 
-    def __init__(self, state: FullState, player_id: int):
+    def __init__(self, state: S, player_id: int):
         raise NotImplementedError()
 
     def __repr__(self):
@@ -336,7 +339,7 @@ class ActionValueInSetRange(ActionRange[AIS]):
         return np.array([0] * self.max_values_in_set)
 
 
-class ActionFactory:
+class ActionFactory(Generic[S]):
 
     param: Param
     range_classes: Sequence[Type[ActionRange]]
@@ -345,6 +348,14 @@ class ActionFactory:
 
     def __init__(self, param: Param):
         self.param = param
+
+    def get_actionable_actions(self, s: S, player_id: int) -> Sequence[ActionRange]:
+        acceptable_action = []
+        for action_class in self.range_classes:
+            action = action_class(s, player_id=player_id)
+            if action.is_actionable():
+                acceptable_action.append(action)
+        return acceptable_action
 
     @property
     def action_space(self) -> spaces.Space:

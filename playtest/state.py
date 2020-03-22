@@ -1,5 +1,5 @@
 import inspect
-from typing import Dict, Type, Sequence, Union
+from typing import Dict, Type, Sequence, Union, TypeVar, Generic
 import numpy as np
 from enum import IntEnum
 
@@ -113,15 +113,18 @@ class SubState(Component):
         return instance
 
 
-class FullState(SubState):
+S = TypeVar("S", bound="SubState")
+
+
+class FullState(SubState, Generic[S]):
     """Define a general state representation
 
     This also contains a set of player SubState, which we will need to handle
     gracefully.
     """
 
-    player_state_class: Type[SubState]
-    players: Sequence[SubState]
+    player_state_class: Type[S]
+    players: Sequence[S]
 
     def __init__(self, param=None):
         """Initialize the players
@@ -134,7 +137,7 @@ class FullState(SubState):
                 self.players.append(self.player_state_class(param))
 
     @property
-    def number_of_players(self):
+    def number_of_players(self) -> int:
         return len(self.players)
 
     def reset(self):
@@ -196,7 +199,12 @@ class FullState(SubState):
                 all_data["self"] = player_state.to_numpy_data()
             else:
                 # Only add visible data
-                all_data["others"].append(player_state.to_visible_numpy_data())
+                other_player_state = player_state.to_visible_numpy_data()
+                # NOTE: we probably can fix this another way
+                assert (
+                    other_player_state
+                ), "You must be able to observe other player's data"
+                all_data["others"].append(other_player_state)
         return all_data
 
     def get_observation_space(self) -> spaces.Space:
