@@ -10,6 +10,7 @@ from typing import (
     TypeVar,
 )
 import re
+import warnings
 import numpy as np
 
 import gym.spaces as spaces
@@ -94,7 +95,10 @@ class Game(Generic[S, AF, P]):
         self.last_player_reward = reward
 
     def get_player_action(
-        self, player_id: int, accepted_action: Optional[Sequence[ActionRange]] = None
+        self,
+        player_id: int,
+        accepted_action: Optional[Sequence[ActionRange]] = None,
+        accepted_range: Optional[Sequence[Type[ActionRange]]] = None,
     ) -> Generator[
         # return: player_id, possible action, last_player_reward
         Tuple[int, Sequence[ActionRange], int],
@@ -107,8 +111,11 @@ class Game(Generic[S, AF, P]):
         """
         if accepted_action is None:
             accepted_action = self.action_factory.get_actionable_actions(
-                self.state, player_id
+                self.state, player_id, accepted_range=accepted_range
             )
+        else:
+            warnings.warn("accepted_action will be removed",
+                          DeprecationWarning)
         action = yield (player_id, accepted_action, self.last_player_reward)
         return action
 

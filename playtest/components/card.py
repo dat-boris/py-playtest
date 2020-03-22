@@ -126,6 +126,9 @@ class Deck(Component, Generic[C]):
         return "{}...".format(str(self.cards[5:]))
 
     def __init__(self, cards=None, shuffle=False, all_cards=False, max_size=52):
+        assert getattr(
+            self, "generic_card", None
+        ), f"Class {self.__class__} have not specificed generic_card"
         if all_cards:
             cards = self.generic_card.get_all_cards()
             assert cards is not None, "Ensure we have cards!"
@@ -206,3 +209,7 @@ class Deck(Component, Generic[C]):
         return np.array(
             value_array + [0] * (self.max_size - len(value_array)), dtype=np.uint8
         )
+
+
+class BasicDeck(Deck):
+    generic_card = Card

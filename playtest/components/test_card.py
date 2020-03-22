@@ -1,4 +1,4 @@
-from playtest.components.card import Card, Deck
+from playtest.components.card import Card, BasicDeck as Deck
 
 
 def test_card_deal():

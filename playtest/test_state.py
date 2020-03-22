@@ -5,7 +5,7 @@ import pytest
 import gym.spaces as spaces
 
 from .constant import Param
-from .components.card import Deck
+from .components.card import BasicDeck
 from .state import SubState, FullState, Visibility
 
 
@@ -16,12 +16,12 @@ class MockPlayerState(SubState):
         "open_hand": Visibility.ALL,
     }
 
-    hand: Deck
-    open_hand: Deck
+    hand: BasicDeck
+    open_hand: BasicDeck
 
     def __init__(self, param=None):
-        self.hand = Deck([])
-        self.open_hand = Deck([])
+        self.hand = BasicDeck([])
+        self.open_hand = BasicDeck([])
 
 
 class MockState(FullState):
@@ -33,12 +33,12 @@ class MockState(FullState):
         "discarded": Visibility.ALL,
     }
 
-    deck: Deck
-    discarded: Deck
+    deck: BasicDeck
+    discarded: BasicDeck
 
     def __init__(self, param=None):
-        self.deck = Deck(all_cards=True, shuffle=True)
-        self.discarded = Deck([])
+        self.deck = BasicDeck(all_cards=True, shuffle=True)
+        self.discarded = BasicDeck([])
         super().__init__(param=param)
 
 

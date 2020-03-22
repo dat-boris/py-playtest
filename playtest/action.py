@@ -352,9 +352,16 @@ class ActionFactory(Generic[S]):
     def __init__(self, param: Param):
         self.param = param
 
-    def get_actionable_actions(self, s: S, player_id: int) -> Sequence[ActionRange]:
+    def get_actionable_actions(
+        self,
+        s: S,
+        player_id: int,
+        accepted_range: Optional[Sequence[Type[ActionRange]]],
+    ) -> Sequence[ActionRange]:
         acceptable_action = []
-        for range_class in self.range_classes:
+        if accepted_range is None:
+            accepted_range = self.range_classes
+        for range_class in accepted_range:
             action_range = range_class(s, player_id=player_id)
             if action_range.is_actionable():
                 acceptable_action.append(action_range)
