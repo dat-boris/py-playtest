@@ -172,7 +172,7 @@ class FullState(SubState, Generic[S]):
 
         return instance
 
-    def get_player_state(self, player_id: int) -> SubState:
+    def get_player_state(self, player_id: int) -> S:
         assert isinstance(player_id, int)
         return self.players[player_id]
 
