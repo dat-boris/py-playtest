@@ -162,7 +162,7 @@ class Deck(Component, Generic[C]):
             count = len(self)
         for _ in range(count):
             assert self.cards, f"Oops - Deck {self.__class__} ran out of card."
-            other.cards.append(self.cards.pop())
+            other.add(self.cards.pop())
 
     def pop(self, count=1, all=False) -> List[C]:
         if all:
@@ -176,7 +176,7 @@ class Deck(Component, Generic[C]):
         """Move a specific card to other deck"""
         assert isinstance(other, self.__class__)
         self.cards.remove(card)
-        other.cards.append(card)
+        other.add(card)
 
     def add(self, card: C):
         self.cards.append(card)

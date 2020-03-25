@@ -60,7 +60,15 @@ class ActionInstance(Generic[S]):
     def from_numpy(cls, array: np.ndarray) -> "ActionInstance":
         raise NotImplementedError(f"Action {cls} was not implemented")
 
-    def resolve(self, s: S, player_id: int, a: Optional[Announcer] = None):
+    def resolve(
+        self, s: S, player_id: int, a: Optional[Announcer] = None
+    ) -> Optional["ActionRange"]:
+        """This resolves the action
+
+        :return:
+            Return None if this action is complete resolved.
+            Can also return additional action range.
+        """
         raise NotImplementedError()
 
 
