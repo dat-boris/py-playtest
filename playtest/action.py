@@ -179,6 +179,10 @@ class ActionBoolean(ActionInstance[S]):
 
 
 class ActionBooleanRange(ActionRange[AI, S]):
+    def __init__(self, state: S, player_id: int):
+        # For boolean state, no need to do things
+        self.actionable = True
+
     def __repr__(self):
         return f"{self.instance_class.key}" if self.actionable else ""
 
@@ -333,6 +337,9 @@ class ActionValueInSetRange(ActionRange[AIS, S]):
             return ""
         valid_value_str = ",".join([str(v) for v in sorted(self.values_set)])
         return f"{self.instance_class.key}([{valid_value_str}])"
+
+    def __eq__(self, x):
+        return self.__class__ == x.__class__ and self.values_set == x.values_set
 
     def is_actionable(self):
         return bool(self.values_set)
