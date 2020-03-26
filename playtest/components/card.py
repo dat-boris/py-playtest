@@ -28,7 +28,8 @@ class BaseCard(Component):
     total_unique_cards: int = 512
 
     def __init__(self, value: str, uid=None, test_watermark=None):
-        assert isinstance(value, str)
+        self.value = value
+        assert isinstance(value, str), f"{value} is not a value card value"
         # Ensure that value is stored in a canonical format
         self.value = self.struct_to_value(self.value_to_struct(value))
         self.uid = uid
@@ -164,12 +165,12 @@ class Deck(Component, Generic[C]):
             assert self.cards, f"Oops - Deck {self.__class__} ran out of card."
             other.add(self.cards.pop())
 
-    def pop(self, count=1, all=False) -> List[C]:
+    def pop(self, index=-1, count=1, all=False) -> List[C]:
         if all:
             count = len(self)
         cards_popped = []
         for _ in range(count):
-            cards_popped.append(self.cards.pop())
+            cards_popped.append(self.cards.pop(index))
         return cards_popped
 
     def move_to(self, other: "Deck", card: C):

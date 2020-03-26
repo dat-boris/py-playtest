@@ -326,11 +326,10 @@ class ActionValueInSetRange(ActionRange[AIS, S]):
         return action.value in self.values_set
 
     def value_to_position(self, value) -> int:
-        """Converting a value to int"""
-        raise NotImplementedError(self.__class__.__name__)
+        return value
 
     def position_to_value(self, pos: int):
-        raise NotImplementedError(self.__class__.__name__)
+        return pos
 
     @classmethod
     def get_action_space_possible(cls):
@@ -364,7 +363,7 @@ class ActionFactory(Generic[S]):
         self,
         s: S,
         player_id: int,
-        accepted_range: Optional[Sequence[Type[ActionRange]]],
+        accepted_range: Optional[Sequence[Type[ActionRange]]] = None,
     ) -> Sequence[ActionRange]:
         acceptable_action = []
         if accepted_range is None:
