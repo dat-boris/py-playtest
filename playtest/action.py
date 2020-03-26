@@ -1,4 +1,5 @@
 import re
+import abc
 from typing import Optional, Type, Sequence, Dict, TypeVar, Generic, Set
 
 import numpy as np
@@ -18,7 +19,7 @@ class InvalidActionError(RuntimeError):
 S = TypeVar("S", bound=FullState)
 
 
-class ActionInstance(Generic[S]):
+class ActionInstance(abc.ABC, Generic[S]):
     """Represent an instance of the action.
 
     The instance of the action can be of acted on.
@@ -40,26 +41,32 @@ class ActionInstance(Generic[S]):
         raise NotImplementedError(f"Action {self.__class__} was not implemented")
 
     @classmethod
+    @abc.abstractmethod
     def from_str(cls, action_str: str) -> "ActionInstance":
         raise NotImplementedError(f"Action {cls} was not implemented")
 
     @classmethod
+    @abc.abstractmethod
     def get_action_space(cls) -> spaces.Space:
         raise NotImplementedError(f"Action {cls} was not implemented")
 
+    @abc.abstractmethod
     def to_numpy_data(self) -> np.ndarray:
         raise NotImplementedError(f"Action {self.__class__} was not implemented")
 
     @staticmethod
+    @abc.abstractstaticmethod
     def to_numpy_data_null() -> np.ndarray:
         """Provide a default numpy representation if this action is not taken
         """
         raise NotImplementedError()
 
     @classmethod
+    @abc.abstractmethod
     def from_numpy(cls, array: np.ndarray) -> "ActionInstance":
         raise NotImplementedError(f"Action {cls} was not implemented")
 
+    @abc.abstractmethod
     def resolve(
         self, s: S, player_id: int, a: Optional[Announcer] = None
     ) -> Optional["ActionRange"]:
@@ -75,7 +82,7 @@ class ActionInstance(Generic[S]):
 AI = TypeVar("AI", bound=ActionInstance)
 
 
-class ActionRange(Generic[AI, S]):
+class ActionRange(abc.ABC, Generic[AI, S]):
     """Represent a range of action
 
     The action range is responsible for representing a set of potential
@@ -91,6 +98,7 @@ class ActionRange(Generic[AI, S]):
 
     player_id: int
 
+    @abc.abstractmethod
     def __init__(self, state: S, player_id: int):
         self.player_id = player_id
         self.actionable = True
@@ -98,27 +106,34 @@ class ActionRange(Generic[AI, S]):
     def __str__(self):
         return repr(self)
 
+    @abc.abstractmethod
     def __repr__(self):
         raise NotImplementedError(f"{self.__class__} is not implemented")
 
+    @abc.abstractmethod
     def __eq__(self, x):
         raise NotImplementedError()
 
     @classmethod
+    @abc.abstractmethod
     def get_action_space_possible(cls) -> spaces.Space:
         raise NotImplementedError(f"{cls} is not implemented")
 
+    @abc.abstractmethod
     def to_numpy_data(self) -> np.ndarray:
         raise NotImplementedError(f"{self.__class__} is not implemented")
 
     @classmethod
+    @abc.abstractmethod
     def to_numpy_data_null(cls) -> np.ndarray:
         raise NotImplementedError(f"{cls} is not implemented.")
 
+    @abc.abstractmethod
     def is_actionable(self) -> bool:
         """Return if this action is actionable"""
         raise NotImplementedError()
 
+    @abc.abstractmethod
     def is_valid(self, x: AI) -> bool:
         raise NotImplementedError()
 

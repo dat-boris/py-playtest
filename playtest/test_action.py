@@ -43,6 +43,9 @@ def test_wait_numpy():
 class MockNewAction(ActionBoolean[MockState]):
     key = "new_action"
 
+    def resolve(self, s, player_id, a=None):
+        pass
+
 
 class MockNewActionRange(ActionBooleanRange[MockNewAction, MockState]):
     instance_class = MockNewAction

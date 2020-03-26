@@ -28,11 +28,13 @@ class Component(abc.ABC):
     def from_data(cls, data):
         return cls(data)
 
+    @abc.abstractmethod
     def to_numpy_data(self):
-        raise NotImplementedError(f"{self.__class__} have not implemented method")
+        raise NotImplementedError()
 
+    @abc.abstractmethod
     def get_observation_space(self) -> spaces.Space:
-        raise NotImplementedError(f"{self.__class__} have not implemented method")
+        raise NotImplementedError()
 
     @property
     def observation_space(self) -> spaces.Space:

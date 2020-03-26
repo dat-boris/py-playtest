@@ -1,6 +1,7 @@
 import logging
 import random
 from copy import copy
+import abc
 from typing import List, Type, Sequence, Optional, Dict, Generic, TypeVar
 
 import numpy as np
@@ -61,16 +62,27 @@ class BaseCard(Component):
         """
         return value
 
-    @staticmethod
-    def get_all_cards() -> Sequence["BaseCard"]:
+    @classmethod
+    @abc.abstractmethod
+    def get_all_cards(cls) -> Sequence["BaseCard"]:
         raise NotImplementedError()
 
     def to_data(self):
         return self.value + (f" [{self.uid}]" if self.uid is not None else "")
 
+    def get_observation_space(self) -> spaces.Space:
+        # Represent a deck of 52 cards
+        return spaces.Box(
+            low=0,
+            high=self.total_unique_cards,
+            shape=(1,),
+            dtype=np.uint8,
+        )
+
     def to_numpy_data(self) -> int:
         # logging.warn(f"class {self.__class__} has not implemented to_numpy_data")
-        return 0
+        assert self.uid, f"Card {self} does not have uid"
+        return self.uid
 
 
 class Card(BaseCard):
@@ -96,12 +108,12 @@ class Card(BaseCard):
     def is_suite(self, suite: str):
         return self.suite in suite
 
-    @staticmethod
-    def get_all_cards(suites=all_suites):
+    @classmethod
+    def get_all_cards(cls, suites=all_suites):
         all_cards = []
         for i in list(range(2, 10)) + ["T", "A", "J", "Q", "K"]:
             for suite in suites:
-                all_cards.append(Card(f"{i}{suite}"))
+                all_cards.append(cls(f"{i}{suite}"))
         return all_cards
 
     def to_numpy_data(self) -> int:
@@ -109,7 +121,7 @@ class Card(BaseCard):
         return 1 + self.number * 4 + Card.all_suites.index(self.suite)
 
 
-C = TypeVar("C", bound=Card)
+C = TypeVar("C", bound=BaseCard)
 
 
 class Deck(Component, Generic[C]):
@@ -140,7 +152,8 @@ class Deck(Component, Generic[C]):
                 cards is not None
             ), "Must pass in cards parameter if not specified all_cards"
             cards = [
-                self.generic_card(c) if not isinstance(c, self.generic_card) else c
+                self.generic_card(c) if not isinstance(
+                    c, self.generic_card) else c
                 for c in cards
             ]
 
