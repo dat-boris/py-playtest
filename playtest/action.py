@@ -1,4 +1,5 @@
 import re
+import abc
 from typing import Optional, Type, Sequence, Dict, TypeVar, Generic, Set
 
 import numpy as np
@@ -18,7 +19,7 @@ class InvalidActionError(RuntimeError):
 S = TypeVar("S", bound=FullState)
 
 
-class ActionInstance(Generic[S]):
+class ActionInstance(abc.ABC, Generic[S]):
     """Represent an instance of the action.
 
     The instance of the action can be of acted on.
@@ -40,34 +41,48 @@ class ActionInstance(Generic[S]):
         raise NotImplementedError(f"Action {self.__class__} was not implemented")
 
     @classmethod
+    @abc.abstractmethod
     def from_str(cls, action_str: str) -> "ActionInstance":
         raise NotImplementedError(f"Action {cls} was not implemented")
 
     @classmethod
+    @abc.abstractmethod
     def get_action_space(cls) -> spaces.Space:
         raise NotImplementedError(f"Action {cls} was not implemented")
 
+    @abc.abstractmethod
     def to_numpy_data(self) -> np.ndarray:
         raise NotImplementedError(f"Action {self.__class__} was not implemented")
 
     @staticmethod
+    @abc.abstractstaticmethod
     def to_numpy_data_null() -> np.ndarray:
         """Provide a default numpy representation if this action is not taken
         """
         raise NotImplementedError()
 
     @classmethod
+    @abc.abstractmethod
     def from_numpy(cls, array: np.ndarray) -> "ActionInstance":
         raise NotImplementedError(f"Action {cls} was not implemented")
 
-    def resolve(self, s: S, player_id: int, a: Optional[Announcer] = None):
+    @abc.abstractmethod
+    def resolve(
+        self, s: S, player_id: int, a: Optional[Announcer] = None
+    ) -> Optional["ActionRange"]:
+        """This resolves the action
+
+        :return:
+            Return None if this action is complete resolved.
+            Can also return additional action range.
+        """
         raise NotImplementedError()
 
 
 AI = TypeVar("AI", bound=ActionInstance)
 
 
-class ActionRange(Generic[AI, S]):
+class ActionRange(abc.ABC, Generic[AI, S]):
     """Represent a range of action
 
     The action range is responsible for representing a set of potential
@@ -83,6 +98,7 @@ class ActionRange(Generic[AI, S]):
 
     player_id: int
 
+    @abc.abstractmethod
     def __init__(self, state: S, player_id: int):
         self.player_id = player_id
         self.actionable = True
@@ -90,27 +106,34 @@ class ActionRange(Generic[AI, S]):
     def __str__(self):
         return repr(self)
 
+    @abc.abstractmethod
     def __repr__(self):
         raise NotImplementedError(f"{self.__class__} is not implemented")
 
+    @abc.abstractmethod
     def __eq__(self, x):
         raise NotImplementedError()
 
     @classmethod
+    @abc.abstractmethod
     def get_action_space_possible(cls) -> spaces.Space:
         raise NotImplementedError(f"{cls} is not implemented")
 
+    @abc.abstractmethod
     def to_numpy_data(self) -> np.ndarray:
         raise NotImplementedError(f"{self.__class__} is not implemented")
 
     @classmethod
+    @abc.abstractmethod
     def to_numpy_data_null(cls) -> np.ndarray:
         raise NotImplementedError(f"{cls} is not implemented.")
 
+    @abc.abstractmethod
     def is_actionable(self) -> bool:
         """Return if this action is actionable"""
         raise NotImplementedError()
 
+    @abc.abstractmethod
     def is_valid(self, x: AI) -> bool:
         raise NotImplementedError()
 
@@ -156,6 +179,10 @@ class ActionBoolean(ActionInstance[S]):
 
 
 class ActionBooleanRange(ActionRange[AI, S]):
+    def __init__(self, state: S, player_id: int):
+        # For boolean state, no need to do things
+        self.actionable = True
+
     def __repr__(self):
         return f"{self.instance_class.key}" if self.actionable else ""
 
@@ -207,6 +234,8 @@ class ActionSingleValue(ActionInstance[S]):
 
     def __init__(self, value: int):
         self.value = value
+        assert self.maximum_value is not None, "{self.__class__} must set max_value"
+        assert self.minimum_value is not None, "{self.__class__} must set min_value"
 
     def __repr__(self):
         return f"{self.key}({self.value})"
@@ -311,6 +340,9 @@ class ActionValueInSetRange(ActionRange[AIS, S]):
         valid_value_str = ",".join([str(v) for v in sorted(self.values_set)])
         return f"{self.instance_class.key}([{valid_value_str}])"
 
+    def __eq__(self, x):
+        return self.__class__ == x.__class__ and self.values_set == x.values_set
+
     def is_actionable(self):
         return bool(self.values_set)
 
@@ -318,11 +350,10 @@ class ActionValueInSetRange(ActionRange[AIS, S]):
         return action.value in self.values_set
 
     def value_to_position(self, value) -> int:
-        """Converting a value to int"""
-        raise NotImplementedError(self.__class__.__name__)
+        return value
 
     def position_to_value(self, pos: int):
-        raise NotImplementedError(self.__class__.__name__)
+        return pos
 
     @classmethod
     def get_action_space_possible(cls):
@@ -356,7 +387,7 @@ class ActionFactory(Generic[S]):
         self,
         s: S,
         player_id: int,
-        accepted_range: Optional[Sequence[Type[ActionRange]]],
+        accepted_range: Optional[Sequence[Type[ActionRange]]] = None,
     ) -> Sequence[ActionRange]:
         acceptable_action = []
         if accepted_range is None:

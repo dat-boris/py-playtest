@@ -1,6 +1,7 @@
 import logging
 import random
 from copy import copy
+import abc
 from typing import List, Type, Sequence, Optional, Dict, Generic, TypeVar
 
 import numpy as np
@@ -28,7 +29,8 @@ class BaseCard(Component):
     total_unique_cards: int = 512
 
     def __init__(self, value: str, uid=None, test_watermark=None):
-        assert isinstance(value, str)
+        self.value = value
+        assert isinstance(value, str), f"{value} is not a value card value"
         # Ensure that value is stored in a canonical format
         self.value = self.struct_to_value(self.value_to_struct(value))
         self.uid = uid
@@ -60,16 +62,24 @@ class BaseCard(Component):
         """
         return value
 
-    @staticmethod
-    def get_all_cards() -> Sequence["BaseCard"]:
+    @classmethod
+    @abc.abstractmethod
+    def get_all_cards(cls) -> Sequence["BaseCard"]:
         raise NotImplementedError()
 
     def to_data(self):
         return self.value + (f" [{self.uid}]" if self.uid is not None else "")
 
+    def get_observation_space(self) -> spaces.Space:
+        # Represent a deck of 52 cards
+        return spaces.Box(
+            low=0, high=self.total_unique_cards, shape=(1,), dtype=np.uint8,
+        )
+
     def to_numpy_data(self) -> int:
         # logging.warn(f"class {self.__class__} has not implemented to_numpy_data")
-        return 0
+        assert self.uid, f"Card {self} does not have uid"
+        return self.uid
 
 
 class Card(BaseCard):
@@ -95,12 +105,12 @@ class Card(BaseCard):
     def is_suite(self, suite: str):
         return self.suite in suite
 
-    @staticmethod
-    def get_all_cards(suites=all_suites):
+    @classmethod
+    def get_all_cards(cls, suites=all_suites):
         all_cards = []
         for i in list(range(2, 10)) + ["T", "A", "J", "Q", "K"]:
             for suite in suites:
-                all_cards.append(Card(f"{i}{suite}"))
+                all_cards.append(cls(f"{i}{suite}"))
         return all_cards
 
     def to_numpy_data(self) -> int:
@@ -108,7 +118,7 @@ class Card(BaseCard):
         return 1 + self.number * 4 + Card.all_suites.index(self.suite)
 
 
-C = TypeVar("C", bound=Card)
+C = TypeVar("C", bound=BaseCard)
 
 
 class Deck(Component, Generic[C]):
@@ -162,21 +172,21 @@ class Deck(Component, Generic[C]):
             count = len(self)
         for _ in range(count):
             assert self.cards, f"Oops - Deck {self.__class__} ran out of card."
-            other.cards.append(self.cards.pop())
+            other.add(self.cards.pop())
 
-    def pop(self, count=1, all=False) -> List[C]:
+    def pop(self, index=-1, count=1, all=False) -> List[C]:
         if all:
             count = len(self)
         cards_popped = []
         for _ in range(count):
-            cards_popped.append(self.cards.pop())
+            cards_popped.append(self.cards.pop(index))
         return cards_popped
 
     def move_to(self, other: "Deck", card: C):
         """Move a specific card to other deck"""
         assert isinstance(other, self.__class__)
         self.cards.remove(card)
-        other.cards.append(card)
+        other.add(card)
 
     def add(self, card: C):
         self.cards.append(card)
