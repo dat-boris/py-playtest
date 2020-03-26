@@ -234,6 +234,8 @@ class ActionSingleValue(ActionInstance[S]):
 
     def __init__(self, value: int):
         self.value = value
+        assert self.maximum_value is not None, "{self.__class__} must set max_value"
+        assert self.minimum_value is not None, "{self.__class__} must set min_value"
 
     def __repr__(self):
         return f"{self.key}({self.value})"
