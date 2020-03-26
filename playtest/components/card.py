@@ -73,10 +73,7 @@ class BaseCard(Component):
     def get_observation_space(self) -> spaces.Space:
         # Represent a deck of 52 cards
         return spaces.Box(
-            low=0,
-            high=self.total_unique_cards,
-            shape=(1,),
-            dtype=np.uint8,
+            low=0, high=self.total_unique_cards, shape=(1,), dtype=np.uint8,
         )
 
     def to_numpy_data(self) -> int:
@@ -152,8 +149,7 @@ class Deck(Component, Generic[C]):
                 cards is not None
             ), "Must pass in cards parameter if not specified all_cards"
             cards = [
-                self.generic_card(c) if not isinstance(
-                    c, self.generic_card) else c
+                self.generic_card(c) if not isinstance(c, self.generic_card) else c
                 for c in cards
             ]
 
