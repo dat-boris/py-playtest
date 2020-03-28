@@ -263,7 +263,7 @@ class EnvironmentInteration:
                 # print(f"Action taken: {action_taken}")
                 assert isinstance(
                     action_taken, np.ndarray
-                ), "Forward agent should return an ndarray. (Got: {action_taken.__class__})"
+                ), f"Forward agent {self.agents[player_id]} should return an ndarray. (Got: {action_taken.__class__})"
 
                 action_n[player_id] = action_taken
 
