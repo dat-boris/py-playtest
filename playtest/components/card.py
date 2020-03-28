@@ -78,7 +78,7 @@ class BaseCard(Component):
 
     def to_numpy_data(self) -> int:
         # logging.warn(f"class {self.__class__} has not implemented to_numpy_data")
-        assert self.uid, f"Card {self} does not have uid"
+        assert self.uid is not None, f"Card {self} does not have uid"
         return self.uid
 
 
