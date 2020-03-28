@@ -6,7 +6,8 @@ from pprint import pprint
 
 import gym
 
-from playtest.env import GameWrapperEnvironment, HumanAgent, EnvironmentInteration
+from playtest.env import GameWrapperEnvironment, EnvironmentInteration
+from playtest.agents import HumanAgent
 from pt_blackjack import Blackjack, Param
 
 AGENT_COUNT = 2

@@ -45,6 +45,30 @@ And you can continue playing the prototype.
 You can observe the code that generates the game (in a few lines of python!)
 in [pt-blackjack/game.py](pt-blackjack/game.py).
 
+# Creating the AI
+
+> Experimental feature: this is a very basic generic game AI that we built!
+
+In play testing a game, one enemy is the problem with context switching between
+different players. This makes it hard to understand your design from player's
+prospective. This allows us to train a simple AI that is useful for testing the
+game.
+
+To create the bot, do:
+
+```
+PYTHONPATH=. pipenv shell example/train.py --output pt_blackjack_ai
+```
+
+Which will then output the bot to the "pt_blackjack_ai" folder. You can then
+play against the bot by doing:
+
+```
+PYTHONPATH=. pipenv shell example/play_ai.py --ai pt_blackjack_ai
+```
+
+Which then you can start the game against the AI.
+
 # Getting started
 
 To get started, read the docs at [here](#todo).

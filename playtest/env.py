@@ -210,55 +210,27 @@ class GameWrapperEnvironment(gym.Env):
         return
 
 
-class HumanAgent(Agent):
-    """Represent a human agent in the world."""
-
-    env: GameWrapperEnvironment
-
-    def __init__(self, env):
-        self.env = env
-
-    def forward(self, observation) -> np.ndarray:
-        """Forward a step for the agent
-
-        :return: observation setup
-        """
-        env = self.env
-        assert env.next_player is not None
-        pprint(env.to_player_data(env.next_player))
-        prompt = "👀 Please enter action ({}):".format(env.next_accepted_action)
-        chosen_action = None
-        while not chosen_action:
-            try:
-                given_action = input(prompt)
-                chosen_action = env.action_factory.from_str(given_action)
-                print(f"😋 Chosen action: {chosen_action}")
-            except InvalidActionError as e:
-                print("🙅‍♂️ Invalid action.")
-                print(str(e))
-
-        # Now from the chosen action, convert back to np.ndarray
-        chosen_action_numpy = env.action_factory.to_numpy(chosen_action)
-        return chosen_action_numpy
-
-
 class EnvironmentInteration:
     """Represent a game that can be played"""
 
     env: GameWrapperEnvironment
     agents: List[Agent]
     episodes: int
+    rounds: Optional[int]
     max_same_player: int
 
-    def __init__(self, env, agents, episodes=50, max_same_player=20):
+    def __init__(self, env, agents, episodes=1, rounds=None, max_same_player=20):
         assert len(agents) == env.n_agents
         self.env = env
         self.agents = agents
         self.episodes = episodes
+        self.rounds = rounds
         self.max_same_player = max_same_player
 
     def play(self):
         env = self.env
+
+        rounds = 0
         for ep_i in range(self.episodes):
             done_n = [False for _ in range(env.n_agents)]
             ep_reward = 0
@@ -299,6 +271,13 @@ class EnvironmentInteration:
                 env.render()
 
                 last_player = player_id
+
+                # Check how many rounds we have done.
+                rounds += 1
+                if self.rounds is not None and rounds >= self.rounds:
+                    print(f"Reached {rounds} rounds. exiting.")
+                    env.close()
+                    return
 
             print("Episode #{} Reward: {}".format(ep_i, ep_reward))
         env.close()
