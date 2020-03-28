@@ -25,3 +25,4 @@ def test_human(env):
 
     state = game.env.game.s
     assert len(state.discarded) == 4, "4 cards discarded"
+

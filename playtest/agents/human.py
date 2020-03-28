@@ -6,19 +6,12 @@ from pprint import pprint
 import numpy as np
 from typing import List
 
-from rl.core import Agent
-
 from playtest.action import InvalidActionError
-from playtest.env import GameWrapperEnvironment
+from playtest.agents.base import BaseAgent
 
 
-class HumanAgent(Agent):
+class HumanAgent(BaseAgent):
     """Represent a human agent in the world."""
-
-    env: GameWrapperEnvironment
-
-    def __init__(self, env):
-        self.env = env
 
     def get_input(self, prompt: str) -> str:
         """Getting input from environment.

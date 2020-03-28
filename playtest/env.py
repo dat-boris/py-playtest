@@ -9,6 +9,7 @@ warnings.simplefilter(action="ignore", category=DeprecationWarning)  # noqa
 
 import numpy as np
 import gym
+import gym.utils.seeding as seeding
 import gym.spaces as spaces
 from rl.core import Agent
 
