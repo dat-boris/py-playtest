@@ -77,10 +77,18 @@ def test_action_factory_possible(factory):
 
 
 def test_convert_action(factory):
+    action_map = factory.get_action_map()
+    assert action_map == [
+        ActionWaitRange,
+        ActionWaitRange,
+        MockNewActionRange,
+        MockNewActionRange,
+    ]
     action_numpy = factory.to_numpy(MockNewAction())
-    assert isinstance(action_numpy, np.int)
-    assert action_numpy.tolist() == [1, 0]
+    assert isinstance(action_numpy, np.int64), "Convert action to np.int"
+    assert action_numpy == 3
     action = factory.from_numpy(action_numpy)
     assert action == MockNewAction()
-    action = factory.from_numpy(np.array([0, 1]))
+    # since wait is the first item in MockActionFactory
+    action = factory.from_numpy(1)
     assert action == ActionWait()

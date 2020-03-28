@@ -1,5 +1,6 @@
 import re
 import abc
+import itertools
 from typing import Optional, Type, Sequence, Dict, TypeVar, Generic, Set
 
 import numpy as np
@@ -479,32 +480,77 @@ class ActionFactory(Generic[S]):
                 pass
         raise InvalidActionError(f"Unknown action: {action_input}")
 
-    def to_numpy(self, action: ActionInstance) -> np.int:
+    def get_action_map(self) -> Sequence[ActionRange]:
+        """return an array of action range and it's map
+
+        For example, if we have too boolean action:
+
+        The first two int range will belongs to the int
+        [actionBoolARange, actionBoolARange, actionBoolBRange, actionBoolBRange]
+        """
+        action_map = itertools.chain(
+            *[
+                [action_range]
+                * (spaces.flatdim(action_range.get_action_space_possible()) + 1)
+                for action_range in self.range_classes
+            ]
+        )
+        return list(action_map)  # type: ignore
+
+    def to_numpy(self, action: ActionInstance) -> np.int64:
         """Converting an action instance to numpy."""
-        action_dict = {
-            a.instance_class.key: a.instance_class.to_numpy_data_null()
-            for a in self.range_classes
-        }
+        int_to_return = 0
         found_action = False
         for action_range in self.range_classes:
             action_expected = action_range.instance_class
+            action_space_possible = action_range.get_action_space_possible()
+            action_int_required = spaces.flatdim(action_space_possible) + 1
             if action.__class__ is action_expected:
-                action_dict[action_expected.key] = action.to_numpy_data()
+                np_value = spaces.flatten(
+                    action_expected.get_action_space(), action.to_numpy_data()
+                )
+                if isinstance(np_value, np.int):
+                    assert np_value < action_int_required
+                    int_to_return += np_value
+                elif isinstance(np_value, np.ndarray):
+                    assert len(np_value) == 1, f"Must be one dim array {action}"
+                    assert (
+                        np_value[0] < action_int_required
+                    ), f"{action_range}: {np_value} does not fit into space {action_space_possible} -> int({action_int_required})"
+                    int_to_return += np_value[0]
                 found_action = True
-        assert found_action, f"Must contain at least one suitable action: {action}"
-        return spaces.flatten(self.action_space, action_dict)
+            else:
+                int_to_return += action_int_required
 
-    def from_numpy(self, numpy_input: np.int) -> ActionInstance:
+        assert found_action, f"Must contain at least one suitable action: {action}"
+        assert isinstance(int_to_return, np.int64)
+        return int_to_return
+
+    def from_numpy(self, numpy_input: np.int64) -> ActionInstance:
         """Converting from numpy to an action instance."""
-        unflattened = spaces.unflatten(self.action_space, numpy_input)
-        # Now given the dict, check if any of them are engaged
-        err_msgs = []
-        for a in self.range_classes:
-            numpy_val = unflattened[a.instance_class.key]
-            try:
-                return a.instance_class.from_numpy(numpy_val)
-            except (ValueError, AssertionError, InvalidActionError) as e:
-                err_msgs.append(str(e))
-        raise InvalidActionError(
-            f"Invalid action input: {numpy_input}.  Msg: {err_msgs}"
-        )
+        int_space_searched = 0
+        found_action = None
+        for action_range in self.range_classes:
+            action_expected = action_range.instance_class
+            action_space_possible = action_range.get_action_space_possible()
+            action_int_required = spaces.flatdim(action_space_possible) + 1
+            print(
+                f"Eval range: for {action_range}, {int_space_searched} -> {action_int_required}"
+            )
+            if (
+                int_space_searched
+                <= numpy_input
+                < (int_space_searched + action_int_required)
+            ):
+                action_space = action_expected.get_action_space()
+                if isinstance(action_space, spaces.MultiBinary):
+                    return action_expected.from_numpy(
+                        np.array([numpy_input - int_space_searched])
+                    )
+                else:
+                    raise NotImplementedError(
+                        f"Cannot convert in into type {action_space}"
+                    )
+            else:
+                int_space_searched += action_int_required
+        raise InvalidActionError(f"Invalid action input: {numpy_input}.")
