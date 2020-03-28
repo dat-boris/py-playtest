@@ -479,7 +479,7 @@ class ActionFactory(Generic[S]):
                 pass
         raise InvalidActionError(f"Unknown action: {action_input}")
 
-    def to_numpy(self, action: ActionInstance) -> np.ndarray:
+    def to_numpy(self, action: ActionInstance) -> np.int:
         """Converting an action instance to numpy."""
         action_dict = {
             a.instance_class.key: a.instance_class.to_numpy_data_null()
@@ -494,7 +494,7 @@ class ActionFactory(Generic[S]):
         assert found_action, f"Must contain at least one suitable action: {action}"
         return spaces.flatten(self.action_space, action_dict)
 
-    def from_numpy(self, numpy_input: np.ndarray) -> ActionInstance:
+    def from_numpy(self, numpy_input: np.int) -> ActionInstance:
         """Converting from numpy to an action instance."""
         unflattened = spaces.unflatten(self.action_space, numpy_input)
         # Now given the dict, check if any of them are engaged

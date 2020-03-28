@@ -20,7 +20,7 @@ class HumanAgent(BaseAgent):
         """
         return input(prompt)
 
-    def forward(self, observation) -> np.ndarray:
+    def forward(self, observation) -> np.int:
         """Forward a step for the agent
 
         :return: observation setup

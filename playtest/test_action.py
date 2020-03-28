@@ -78,6 +78,7 @@ def test_action_factory_possible(factory):
 
 def test_convert_action(factory):
     action_numpy = factory.to_numpy(MockNewAction())
+    assert isinstance(action_numpy, np.int)
     assert action_numpy.tolist() == [1, 0]
     action = factory.from_numpy(action_numpy)
     assert action == MockNewAction()

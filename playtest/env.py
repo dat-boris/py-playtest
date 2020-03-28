@@ -262,8 +262,8 @@ class EnvironmentInteration:
                 action_taken = self.agents[player_id].forward(obs_n[player_id])
                 # print(f"Action taken: {action_taken}")
                 assert isinstance(
-                    action_taken, np.ndarray
-                ), f"Forward agent {self.agents[player_id]} should return an ndarray. (Got: {action_taken.__class__})"
+                    action_taken, np.int
+                ), f"Forward agent {self.agents[player_id]} should return an np.int. (Got: {action_taken.__class__})"
 
                 action_n[player_id] = action_taken
 
