@@ -29,8 +29,7 @@ def test_training(env: GameWrapperEnvironment):
 def test_playing(env):
     assert env.n_agents == 2
     at = KerasDQNAgent(env)
-    new_agent = KerasDQNAgent(env)
-    new_agent.load_weights(AGENT_FILENAME)
+    new_agent = KerasDQNAgent(env, weight_file=AGENT_FILENAME)
 
     agents = [get_patched_agent(env, ["bet(3)", "skip"]), new_agent]
 

@@ -57,17 +57,17 @@ game.
 To create the bot, do:
 
 ```
-PYTHONPATH=. pipenv shell example/train.py --output pt_blackjack_ai
+PYTHONPATH=. pipenv shell example/train.py
 ```
 
-Which will then output the bot to the "pt_blackjack_ai" folder. You can then
+Which will then output the bot to the a weight file (`<bot>.h5f`) folder. You can then
 play against the bot by doing:
 
 ```
-PYTHONPATH=. pipenv shell example/play_ai.py --ai pt_blackjack_ai
+PYTHONPATH=. pipenv shell example/play.py --ai
 ```
 
-Which then you can start the game against the AI.
+Which then you can start the game against the AI from the loaded AI weight file.
 
 # Getting started
 

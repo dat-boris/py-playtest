@@ -24,7 +24,7 @@ class KerasDQNAgent(BaseAgent, DQNAgent):
 
     env: GameWrapperEnvironment
 
-    def __init__(self, env: GameWrapperEnvironment):
+    def __init__(self, env: GameWrapperEnvironment, weight_file=None):
         """Build a simple DQN model"""
         BaseAgent.__init__(self, env)
         nb_actions: int = flatdim(env.action_space)
@@ -57,3 +57,6 @@ class KerasDQNAgent(BaseAgent, DQNAgent):
 
         # Ensure we compile an optimizer for target model
         self.compile(Adam(lr=1e-3), metrics=["mae"])
+
+        if weight_file is not None:
+            self.load_weights(weight_file)
