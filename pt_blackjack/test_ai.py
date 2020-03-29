@@ -15,7 +15,7 @@ def test_training(env: GameWrapperEnvironment):
     agents = [KerasDQNAgent(env) for _ in range(env.n_agents)]
     try:
         os.remove(AGENT_FILENAME)
-    except FileNotFoundError:
+    except OSError:
         pass
     train_agents(env, agents, save_filenames=[AGENT_FILENAME], nb_steps=10)
     assert os.path.exists(AGENT_FILENAME)

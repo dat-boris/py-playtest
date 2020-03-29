@@ -235,13 +235,13 @@ class ActionSingleValue(ActionInstance[S]):
     maximum_value: int
 
     def __init__(self, value: int):
+        self.value = value
         assert self.maximum_value is not None, "{self.__class__} must set max_value"
         assert self.minimum_value is not None, "{self.__class__} must set min_value"
-        if not self.minimum_value <= value < self.maximum_value:
+        if not self.minimum_value <= value <= self.maximum_value:
             raise InvalidActionError(
                 f"Value {value} not within bound [{self.minimum_value}, {self.maximum_value})"
             )
-        self.value = value
 
     def __repr__(self):
         return f"{self.key}({self.value})"

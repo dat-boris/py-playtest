@@ -32,7 +32,13 @@ def train_agents(
     assert all(
         [getattr(a, "target_model", None) for a in agents]
     ), "Must have compiled the model"
-    # multi_agent.compile(Adam(lr=1e-3), metrics=["mae"])
+    multi_agent.compile(Adam(lr=1e-3), metrics=["mae"])
+
+    multi_agent.fit(
+        env,
+        nb_steps=nb_steps,
+        # visualize=True, verbose=2
+    )
 
     for i, file_name in enumerate(save_filenames):
         model = agents[i]
