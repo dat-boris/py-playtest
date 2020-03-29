@@ -311,7 +311,7 @@ class ActionSingleValueRange(ActionRange[ASV, S]):
         )
 
     def pick_random(self) -> ActionInstance:
-        return self.instance_class(random.randint(self.lower, self.uppergit))
+        return self.instance_class(random.randint(self.lower, self.upper))
 
     @classmethod
     def get_action_space_possible(cls):

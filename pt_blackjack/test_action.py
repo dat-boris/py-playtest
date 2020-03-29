@@ -22,8 +22,11 @@ def test_action_range_valid(action_range):
 
 
 def test_action_range_invalid(action_range):
-    """Test that action has an open upper bound"""
+    """Test that action has an inclusive upper bound"""
+    assert str(action_range) == "bet(1->10)"
     action = ActionBet(10)
+    assert action_range.is_valid(action)
+    action = ActionBet(11)
     assert not action_range.is_valid(action)
 
 
