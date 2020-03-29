@@ -25,12 +25,12 @@ class Blackjack(Game[State, ActionFactory, Param]):
 
     base_state = State
 
-    def __init__(self, param: Param):
+    def __init__(self, param: Param, **kwargs):
         self.state = State(param=param)
         self.action_factory = ActionFactory(param=param)
         self.last_player_reward = Reward.VALID_ACTION
 
-        super().__init__(param)
+        super().__init__(param, **kwargs)
 
         self.players = []
         for i in range(param.number_of_players):

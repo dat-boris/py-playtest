@@ -38,8 +38,9 @@ class GameWrapperEnvironment(gym.Env):
     # Number of times input is invalid
     continuous_invalid_inputs: List[ActionInstance]
     max_continuous_invalid_inputs: int = 100
+    verbose: bool
 
-    def __init__(self, game: Game):
+    def __init__(self, game: Game, verbose=True):
         self.game = game
         self.action_factory = game.action_factory
         self.state = game.state
@@ -49,6 +50,7 @@ class GameWrapperEnvironment(gym.Env):
         self.next_accepted_action = None
         self.cached_space = None
         self.continuous_invalid_inputs = []
+        self.verbose = verbose
 
     @property
     def n_agents(self) -> int:
@@ -137,7 +139,8 @@ class GameWrapperEnvironment(gym.Env):
                 ):
                     action_to_send = action
                 else:
-                    logging.warning(f"🙅‍♂️ Action {action} is not valid.")
+                    if self.verbose:
+                        logging.warning(f"🙅‍♂️ Action {action} is not valid.")
                     self.continuous_invalid_inputs.append(action)
                     rewards[player_id] = Reward.INVALID_ACTION
 
@@ -157,9 +160,10 @@ class GameWrapperEnvironment(gym.Env):
                 len(self.continuous_invalid_inputs)
                 >= self.max_continuous_invalid_inputs
             ):
-                logging.warning(
-                    f"Getting continue bad input: {self.continuous_invalid_inputs}"
-                )
+                if self.verbose:
+                    logging.warning(
+                        f"Getting continue bad input: {self.continuous_invalid_inputs}"
+                    )
                 termination = [True] * self.game.number_of_players
             observations = self.__get_all_players_observation_with_action()
             return (observations, rewards, termination, {})

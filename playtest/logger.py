@@ -6,15 +6,19 @@ class Announcer:
     """
 
     messages: List[str]
+    verbose: bool
 
-    def __init__(self):
+    def __init__(self, verbose=True):
         self.messages = []
+        self.verbose = verbose
 
     def say(self, msg):
-        print(f"📢: {msg}\n")
+        if self.verbose:
+            print(f"📢: {msg}\n")
 
     def ask(self, msg):
-        print(f"🤔: {msg}\n")
+        if self.verbose:
+            print(f"🤔: {msg}\n")
 
     def clear(self):
         self.messages = []

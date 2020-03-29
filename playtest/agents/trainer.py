@@ -1,4 +1,4 @@
-from typing import List
+from typing import Sequence, List
 import numpy as np
 
 # This is dependent on work from
@@ -17,7 +17,7 @@ DEFAULT_NB_STEPS = 500000
 
 def train_agents(
     env: GameWrapperEnvironment,
-    agents: List[BaseAgent],
+    agents: Sequence[BaseAgent],
     save_filenames: List[str],
     nb_steps=DEFAULT_NB_STEPS,
 ):
