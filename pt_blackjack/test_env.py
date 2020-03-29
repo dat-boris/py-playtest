@@ -45,7 +45,8 @@ def test_obs_space(env):
         52
         + 52  # discarded
         + 2  # player hand
-        + (1 + 1) * (AGENT_COUNT - 1)  # player bank + bet  # other player hands
+        # player bank + bet  # other player hands
+        + (1 + 1) * (AGENT_COUNT - 1)
     ), "Observation space is of right shape"
 
 
@@ -94,19 +95,32 @@ def test_invalid_action(env: GameWrapperEnvironment):
 
 
 def test_continuous_invalid_action(env: GameWrapperEnvironment):
-    """Ensure that continuous invalid action will lead to termination"""
+    """Given continous invalid action, this will eventually pick a
+    random valida action
+    """
     env.reset()
     state = env.game.s
     assert env.next_accepted_action == [ActionBetRange(state, player_id=0)]
     assert env.next_player == 0
-    termination = [False, False]
-    hit_numpy_value = env.action_factory.to_int(ActionHit())
-    bet3_numpy_value = env.action_factory.to_int(ActionBet(3))
 
-    for _ in range(env.max_continuous_invalid_inputs):
-        obs, reward, termination, _ = env.step([hit_numpy_value, bet3_numpy_value])
-    assert termination[0]
-    assert reward[0] == Reward.INVALID_ACTION
+    bet3_numpy_value = env.action_factory.to_int(ActionBet(3))
+    wait_numpy_value = env.action_factory.to_int(ActionWait())
+
+    # Move one step forward in the bet
+    obs, reward, _, _ = env.step([bet3_numpy_value, wait_numpy_value])
+    assert env.next_accepted_action == [
+        ActionHitRange(state, player_id=0),
+        ActionSkipRange(state, player_id=0),
+    ]
+    assert env.next_player == 0
+
+    # Now let's keep giving the player bad action
+    for _ in range(env.max_continuous_invalid_inputs + 1):
+        obs, reward, _, _ = env.step([bet3_numpy_value, wait_numpy_value])
+        assert reward[0] < 0, "Player is punished"
+
+    games_moved = env.next_player == 1 or len(env.game.s.get_player_state(0).hand) == 3
+    assert games_moved, "Automatically moved on"
 
 
 def test_step(env: GameWrapperEnvironment):

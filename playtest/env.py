@@ -37,7 +37,8 @@ class GameWrapperEnvironment(gym.Env):
     cached_space: Optional[spaces.Space]
     # Number of times input is invalid
     continuous_invalid_inputs: List[ActionInstance]
-    max_continuous_invalid_inputs: int = 100
+    # Number of times before we choose a random action and continue
+    max_continuous_invalid_inputs: int = 5
     verbose: bool
 
     def __init__(self, game: Game, verbose=True):
@@ -124,6 +125,7 @@ class GameWrapperEnvironment(gym.Env):
         assert self.next_accepted_action
 
         action_to_send = None
+        lock_reward = False
 
         for player_id, a in enumerate(agents_action):
             assert isinstance(
@@ -138,6 +140,20 @@ class GameWrapperEnvironment(gym.Env):
                     action, self.next_accepted_action
                 ):
                     action_to_send = action
+                elif (
+                    len(self.continuous_invalid_inputs)
+                    >= self.max_continuous_invalid_inputs
+                ):
+                    if self.verbose:
+                        logging.warning(
+                            f"Getting continue bad input: {self.continuous_invalid_inputs}."
+                            "Going to pick a random action"
+                        )
+                    action_to_send = self.action_factory.pick_random_action(
+                        self.next_accepted_action
+                    )
+                    lock_reward = True
+                    rewards[player_id] = Reward.INVALID_ACTION
                 else:
                     if self.verbose:
                         logging.warning(f"🙅‍♂️ Action {action} is not valid.")
@@ -153,20 +169,12 @@ class GameWrapperEnvironment(gym.Env):
                 else:
                     rewards[player_id] = Reward.VALID_ACTION
 
+        observations = self.__get_all_players_observation_with_action()
+        terminal = [False for _ in range(self.game.number_of_players)]
+
         # check if we have a valid action, and return that
         if not action_to_send:
-            termination = [False] * self.game.number_of_players
-            if (
-                len(self.continuous_invalid_inputs)
-                >= self.max_continuous_invalid_inputs
-            ):
-                if self.verbose:
-                    logging.warning(
-                        f"Getting continue bad input: {self.continuous_invalid_inputs}"
-                    )
-                termination = [True] * self.game.number_of_players
-            observations = self.__get_all_players_observation_with_action()
-            return (observations, rewards, termination, {})
+            return (observations, rewards, terminal, {})
         self.continuous_invalid_inputs = []
 
         # Send the action to the step
@@ -180,7 +188,6 @@ class GameWrapperEnvironment(gym.Env):
             stopped_iteration = True
 
         # Let's get observation for each of the player
-        observations = self.__get_all_players_observation_with_action()
         if stopped_iteration:
             return (
                 observations,
@@ -191,10 +198,10 @@ class GameWrapperEnvironment(gym.Env):
                 {},
             )
 
-        rewards[self.next_player] = last_reward
+        if not lock_reward:
+            rewards[self.next_player] = last_reward
         self.next_player = next_player
         self.next_accepted_action = accepted_action
-        terminal = [False for _ in range(self.game.number_of_players)]
 
         return observations, rewards, terminal, {}
 

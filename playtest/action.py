@@ -1,6 +1,7 @@
 import re
 import abc
 import itertools
+import random
 from typing import Optional, Type, Sequence, Dict, TypeVar, Generic, Set, List, Tuple
 
 import numpy as np
@@ -107,6 +108,10 @@ class ActionRange(abc.ABC, Generic[AI, S]):
     def __str__(self):
         return repr(self)
 
+    @abc.abstractmethod
+    def pick_random(self) -> ActionInstance:
+        raise NotImplementedError()
+
     @classmethod
     def get_number_of_distinct_value(cls) -> int:
         return cls.instance_class.get_number_of_distinct_value()
@@ -189,6 +194,9 @@ class ActionBooleanRange(ActionRange[AI, S]):
 
     def __eq__(self, x):
         return self.__class__ == x.__class__
+
+    def pick_random(self) -> ActionInstance:
+        return self.instance_class(True)
 
     @classmethod
     def get_action_space_possible(cls):
@@ -300,6 +308,9 @@ class ActionSingleValueRange(ActionRange[ASV, S]):
             and self.upper == x.upper
             and self.lower == x.lower
         )
+
+    def pick_random(self) -> ActionInstance:
+        return self.instance_class(random.randint(self.lower, self.upper + 1))
 
     @classmethod
     def get_action_space_possible(cls):
@@ -418,6 +429,9 @@ class ActionValueInSetRange(ActionRange[AIS, S], Generic[AIS, S, T]):
             self.__class__ == x.__class__ and self.possible_values == x.possible_values
         )
 
+    def pick_random(self) -> ActionInstance:
+        return self.instance_class(random.choice(list(self.possible_values)))
+
     def is_actionable(self):
         return bool(self.possible_values)
 
@@ -521,13 +535,20 @@ class ActionFactory(Generic[S]):
 
     def is_valid_from_range(
         self, action: ActionInstance, action_ranges: Sequence[ActionRange]
-    ):
+    ) -> bool:
         for action_range in action_ranges:
             if isinstance(
                 action, action_range.instance_class
             ) and action_range.is_valid(action):
                 return True
         return False
+
+    def pick_random_action(
+        self, action_ranges: Sequence[ActionRange]
+    ) -> ActionInstance:
+        """Pick a random action, out of the potential action classes"""
+        action_range = random.choice(action_ranges)
+        return action_range.pick_random()
 
     def from_str(self, action_input: str) -> ActionInstance:
         """Tokenize input from string into ActionInstance"""
