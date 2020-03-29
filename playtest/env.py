@@ -268,7 +268,7 @@ class EnvironmentInteration:
                 )
                 action_n = [default_numpy_action] * env.n_agents
 
-                # print(f"Player {player_id+1} taking action...")
+                # print(f"Player {player_id} taking action...")
 
                 action_taken = self.agents[player_id].forward(obs_n[player_id])
                 # print(f"Action taken: {action_taken}")

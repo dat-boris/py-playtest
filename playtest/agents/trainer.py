@@ -1,5 +1,6 @@
 from typing import Sequence, List
 import numpy as np
+import pdb, traceback, sys
 
 # This is dependent on work from
 # https://github.com/keras-rl/keras-rl/compare/master...dat-boris:add-multi-agent
@@ -20,6 +21,7 @@ def train_agents(
     agents: Sequence[BaseAgent],
     save_filenames: List[str],
     nb_steps=DEFAULT_NB_STEPS,
+    is_pdb=False,
 ):
     assert save_filenames, "Must save at last one agent"
     assert all(
@@ -34,11 +36,18 @@ def train_agents(
     ), "Must have compiled the model"
     multi_agent.compile(Adam(lr=1e-3), metrics=["mae"])
 
-    multi_agent.fit(
-        env,
-        nb_steps=nb_steps,
-        # visualize=True, verbose=2
-    )
+    try:
+        multi_agent.fit(
+            env,
+            nb_steps=nb_steps,
+            # visualize=True, verbose=2
+        )
+    except Exception as ex:
+        if is_pdb:
+            _, _, tb = sys.exc_info()
+            traceback.print_exc()
+            pdb.post_mortem(tb)
+        raise ex
 
     for i, file_name in enumerate(save_filenames):
         model = agents[i]

@@ -68,6 +68,9 @@ class ActionBetRange(ActionSingleValueRange[ActionBet, State]):
         ps = state.get_player_state(player_id)
         self.lower = 1
         self.upper = ps.bank.amount
+        assert (
+            self.lower < self.upper
+        ), f"Both upper and lower equal - player {player_id} out of cash?"
 
 
 class ActionFactory(BaseActionFactory):

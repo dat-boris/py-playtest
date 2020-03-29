@@ -60,7 +60,7 @@ class Blackjack(Game[State, ActionFactory, Param]):
 
     def find_winner(self) -> Optional[int]:
         all_banks = [self.s.get_player_state(p.id).bank.amount for p in self.players]
-        has_broke = any([b <= 0 for b in all_banks])
+        has_broke = any([b <= 1 for b in all_banks])
         if not has_broke:
             return None
 
@@ -88,7 +88,9 @@ class Blackjack(Game[State, ActionFactory, Param]):
         bet_value = None
         bet = yield from self.get_player_action(p.id, accepted_action)
         assert isinstance(bet, ActionBet)
-        assert accepted_action[0].is_valid(bet), "Invalid bet made!"
+        assert accepted_action[0].is_valid(
+            bet
+        ), f"Invalid bet made: {bet} based on {accepted_action[0]}"
         bet_value = bet.value
         self.a.say(f"Player {p.id} bet: {bet_value} coin")
         player_state.bet.take_from(player_state.bank, value=bet_value)

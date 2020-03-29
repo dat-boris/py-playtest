@@ -295,6 +295,7 @@ class ActionSingleValueRange(ActionRange[ASV, S]):
 
     instance_class: Type[ASV]
 
+    # Note: upper is inclusive
     upper: int
     lower: int
     actionable: bool
@@ -310,7 +311,7 @@ class ActionSingleValueRange(ActionRange[ASV, S]):
         )
 
     def pick_random(self) -> ActionInstance:
-        return self.instance_class(random.randint(self.lower, self.upper + 1))
+        return self.instance_class(random.randint(self.lower, self.uppergit))
 
     @classmethod
     def get_action_space_possible(cls):
@@ -336,7 +337,7 @@ class ActionSingleValueRange(ActionRange[ASV, S]):
 
     def is_valid(self, x) -> bool:
         if isinstance(x, self.instance_class):
-            return self.lower <= x.value < self.upper
+            return self.lower <= x.value <= self.upper
         return False
 
 

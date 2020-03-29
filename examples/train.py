@@ -19,6 +19,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--episodes", type=int, default=100000, help="episodes (default: %(default)s)"
     )
+    parser.add_argument("--pdb", action="store_true", help="Add debugger on error")
+    parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Print verbose message"
+    )
     parser.add_argument(
         "--output",
         type=str,
@@ -27,9 +31,11 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    __game = Blackjack(Param(number_of_players=AGENT_COUNT), verbose=False)
-    env: GameWrapperEnvironment = GameWrapperEnvironment(__game, verbose=False)
+    __game = Blackjack(Param(number_of_players=AGENT_COUNT), verbose=args.verbose)
+    env: GameWrapperEnvironment = GameWrapperEnvironment(__game, verbose=args.verbose)
 
     agents = [KerasDQNAgent(env) for _ in range(env.n_agents)]
 
-    train_agents(env, agents, save_filenames=[args.output], nb_steps=args.episodes)
+    train_agents(
+        env, agents, save_filenames=[args.output], nb_steps=args.episodes, is_pdb=True,
+    )
