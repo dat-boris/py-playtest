@@ -28,7 +28,6 @@ def test_training(env: GameWrapperEnvironment):
 
 def test_playing(env):
     assert env.n_agents == 2
-    at = KerasDQNAgent(env)
     if not os.path.exists(AGENT_FILENAME):
         agents = [KerasDQNAgent(env) for _ in range(env.n_agents)]
         # create agent file
