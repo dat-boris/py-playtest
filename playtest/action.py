@@ -472,11 +472,15 @@ class ActionFactory(Generic[S]):
         s: S,
         player_id: int,
         accepted_range: Optional[Sequence[Type[ActionRange]]] = None,
+        no_wait=True,
     ) -> Sequence[ActionRange]:
         acceptable_action = []
         if accepted_range is None:
             accepted_range = self.range_classes
         for range_class in accepted_range:
+            if no_wait and (range_class is ActionWaitRange):
+                # skip wait action
+                continue
             action_range = range_class(s, player_id=player_id)
             if action_range.is_actionable():
                 acceptable_action.append(action_range)

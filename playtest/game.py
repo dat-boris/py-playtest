@@ -100,6 +100,7 @@ class Game(Generic[S, AF, P]):
         player_id: int,
         accepted_action: Optional[Sequence[ActionRange]] = None,
         accepted_range: Optional[Sequence[Type[ActionRange]]] = None,
+        no_wait=True,
     ) -> Generator[
         # return: player_id, possible action, last_player_reward
         Tuple[int, Sequence[ActionRange], int],
@@ -112,7 +113,8 @@ class Game(Generic[S, AF, P]):
         """
         if accepted_action is None:
             accepted_action = self.action_factory.get_actionable_actions(
-                self.state, player_id, accepted_range=accepted_range
+                self.state, player_id, accepted_range=accepted_range,
+                no_wait=no_wait
             )
         else:
             warnings.warn("accepted_action will be removed", DeprecationWarning)
