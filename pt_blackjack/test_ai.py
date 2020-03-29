@@ -29,7 +29,13 @@ def test_training(env: GameWrapperEnvironment):
 def test_playing(env):
     assert env.n_agents == 2
     at = KerasDQNAgent(env)
-    new_agent = KerasDQNAgent(env, weight_file=AGENT_FILENAME)
+    if not os.path.exists(AGENT_FILENAME):
+        agents = [KerasDQNAgent(env) for _ in range(env.n_agents)]
+        # create agent file
+        train_agents(env, agents, save_filenames=[AGENT_FILENAME], nb_steps=10)
+        new_agent = agents[0]
+    else:
+        new_agent = KerasDQNAgent(env, weight_file=AGENT_FILENAME)
 
     agents = [get_patched_agent(env, ["bet(3)", "skip"]), new_agent]
 
