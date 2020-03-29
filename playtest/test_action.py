@@ -42,7 +42,7 @@ def test_wait_numpy():
     action_range = ActionWaitRange(MockState(), player_id=0)
     assert action_range.to_numpy_data().tolist() == [1]
     action = ActionWait()
-    assert action.to_int() == 1
+    assert action.to_int() == 0
 
 
 class ActionBet(ActionSingleValue[MockState]):
@@ -139,17 +139,15 @@ def factory():
     return MockActionFactory(Param(number_of_players=2))
 
 
-@pytest.mark.xfail
-def test_action_factory_action(factory):
-    assert isinstance(factory.action_space, spaces.Dict)
+def test_action_factor_action_space(factory):
+    assert factory.number_of_actions == 10
 
 
-@pytest.mark.xfail
 def test_action_factory_possible(factory):
     possible_action_space = factory.action_space_possible
     assert isinstance(possible_action_space, spaces.Dict)
 
-    assert spaces.flatdim(possible_action_space) == 2
+    assert spaces.flatdim(possible_action_space) == 6
 
     action_dict = factory.action_range_to_numpy(
         [ActionWaitRange(MockState(), player_id=0)]
@@ -157,15 +155,20 @@ def test_action_factory_possible(factory):
     assert action_dict["wait"] == [1]
 
 
-@pytest.mark.xfail
 def test_convert_action(factory):
     action_map = factory.get_action_map()
-    assert action_map == ([ActionWaitRange] * 2 + [MockNewActionRange] * (0xFF + 1))
-    action_numpy = factory.to_numpy(MockNewAction(5))
-    assert isinstance(action_numpy, np.int64), "Convert action to np.int"
-    assert action_numpy == 3
-    action = factory.from_numpy(action_numpy)
-    assert action == MockNewAction()
+    assert action_map == [
+        (ActionWaitRange, 0, 1),
+        (BetActionUpperLowerRange, 1, 7),
+        (EatActionSetRange, 7, 10),
+    ]
+    action_value = factory.to_int(ActionEat("orange"))
+    assert isinstance(action_value, int), "Convert action to np.int"
+    assert action_value == 8
+    action = factory.from_int(action_value)
+    assert action == ActionEat("orange")
+    action = factory.from_int(5)
+    assert action == ActionBet(9)
     # since wait is the first item in MockActionFactory
-    action = factory.from_numpy(1)
+    action = factory.from_int(0)
     assert action == ActionWait()

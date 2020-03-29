@@ -1,7 +1,7 @@
 import re
 import abc
 import itertools
-from typing import Optional, Type, Sequence, Dict, TypeVar, Generic, Set, List
+from typing import Optional, Type, Sequence, Dict, TypeVar, Generic, Set, List, Tuple
 
 import numpy as np
 
@@ -31,12 +31,14 @@ class ActionInstance(abc.ABC, Generic[S]):
     def __init__(self, value):
         pass
 
+    @abc.abstractmethod
     def __eq__(self, x):
         raise NotImplementedError(f"Action {self.__class__} was not implemented")
 
     def __str__(self) -> str:
         return repr(self)
 
+    @abc.abstractmethod
     def __repr__(self) -> str:
         """Create string representation"""
         raise NotImplementedError(f"Action {self.__class__} was not implemented")
@@ -105,6 +107,10 @@ class ActionRange(abc.ABC, Generic[AI, S]):
     def __str__(self):
         return repr(self)
 
+    @classmethod
+    def get_number_of_distinct_value(cls) -> int:
+        return cls.instance_class.get_number_of_distinct_value()
+
     @abc.abstractmethod
     def __repr__(self):
         raise NotImplementedError(f"{self.__class__} is not implemented")
@@ -120,6 +126,11 @@ class ActionRange(abc.ABC, Generic[AI, S]):
 
     @abc.abstractmethod
     def to_numpy_data(self) -> np.ndarray:
+        raise NotImplementedError(f"{self.__class__} is not implemented")
+
+    @classmethod
+    @abc.abstractmethod
+    def to_numpy_data_null(self) -> np.ndarray:
         raise NotImplementedError(f"{self.__class__} is not implemented")
 
     @abc.abstractmethod
@@ -155,15 +166,15 @@ class ActionBoolean(ActionInstance[S]):
 
     @classmethod
     def get_number_of_distinct_value(cls) -> int:
-        return 2
+        return 1
 
     def to_int(self) -> int:
-        return 1
+        return 0
 
     @classmethod
     def from_int(cls, np_value: int) -> "ActionInstance":
         """Check if value is acceptable"""
-        if np_value == 1:
+        if np_value == 0:
             return cls()
         raise InvalidActionError(f"Unknown value {np_value} for {cls}")
 
@@ -186,8 +197,8 @@ class ActionBooleanRange(ActionRange[AI, S]):
     def to_numpy_data(self) -> np.ndarray:
         return np.array([1])
 
-    @staticmethod
-    def to_numpy_data_null() -> np.ndarray:
+    @classmethod
+    def to_numpy_data_null(cls) -> np.ndarray:
         return np.array([0])
 
     def is_actionable(self) -> bool:
@@ -331,6 +342,12 @@ class ActionValueInSet(ActionInstance[S], Generic[S, T]):
             raise InvalidActionError(f"{value} is not one of {self.value_set_mapping}")
         self.value = value
 
+    def __repr__(self):
+        return f"{self.key}({self.value})"
+
+    def __eq__(self, x):
+        return self.key == x.key and self.value == x.value
+
     @classmethod
     def value_to_int(cls, value) -> int:
         return cls.value_set_mapping.index(value)
@@ -349,14 +366,14 @@ class ActionValueInSet(ActionInstance[S], Generic[S, T]):
         if matches:
             instance_value = matches.group(1)
             if cls.coerce_int:
-                instance_value = int(instance_value)
+                instance_value = int(instance_value)  # type: ignore
             return cls(instance_value)
         raise InvalidActionError(f"Unknown action: {action_str}")
 
     @classmethod
     def from_int(cls, np_value: int) -> ActionInstance:
         assert 0 <= np_value < cls.unique_value_count
-        return cls(np_value)
+        return cls(cls.value_set_mapping[np_value])
 
 
 AIS = TypeVar("AIS", bound=ActionValueInSet)
@@ -447,22 +464,15 @@ class ActionFactory(Generic[S]):
         return acceptable_action
 
     @property
-    def action_space(self) -> spaces.Space:
-        """Represent the concret space for the action
+    def number_of_actions(self) -> int:
+        """Represent the concret space for the action.
+
+        Used for feedback executing the actions.
 
         See `action_space_possible` for explanation.
         """
         # We get this from the array of action
-        action_space_dict: Dict[str, spaces.Space] = {}
-        for a in self.range_classes:
-            action_key = a.instance_class.key
-            # Note that instance class is an object, we need to work with this
-            action_space = a.instance_class.get_action_space()
-            assert isinstance(
-                action_space, spaces.Space
-            ), f"{action_key} does not have valid action space"
-            action_space_dict[action_key] = action_space
-        return spaces.Dict(action_space_dict)
+        return sum([a.get_number_of_distinct_value() for a in self.range_classes])
 
     @property
     def action_space_possible(self) -> spaces.Space:
@@ -474,15 +484,12 @@ class ActionFactory(Generic[S]):
         Let's say a maximum bet range is between (0, 100)
 
         So:
-        Bet.action_space_possible == space.Box(2)
-            # ^^^ The possible represent 2 values
+        BetRange.action_space_possible == space.Box(2)
+            # ^^^ The possible represent (lower, upper)
 
-        Bet.to_numpy_data_null == [0,100]
-            # ^^^^ The value of default action
-
-        Bet.action_space == space.Box(1)
+        # the output action space is always collapsed to int
+        Bet.action_space == space.Box(1, lower, upper)
             # ^^^ Represent the one value, that can fall into above
-
         """
         return spaces.Dict(
             {
@@ -527,7 +534,8 @@ class ActionFactory(Generic[S]):
                 pass
         raise InvalidActionError(f"Unknown action: {action_input}")
 
-    def get_action_map(self) -> Sequence[ActionRange]:
+    @classmethod
+    def get_action_map(cls) -> Sequence[Tuple[Type[ActionRange], int, int]]:
         """return an array of action range and it's map
 
         For example, if we have too boolean action:
@@ -535,69 +543,32 @@ class ActionFactory(Generic[S]):
         The first two int range will belongs to the int
         [actionBoolARange, actionBoolARange, actionBoolBRange, actionBoolBRange]
         """
-        action_map = itertools.chain(
-            *[
-                [action_range]
-                * (spaces.flatdim(action_range.get_action_space_possible()) + 1)
-                for action_range in self.range_classes
-            ]
-        )
-        return list(action_map)  # type: ignore
+        action_map = []
+        current_index = 0
+        for action_range in cls.range_classes:
+            upper_bound = current_index + action_range.get_number_of_distinct_value()
+            action_map.append((action_range, current_index, upper_bound))
+            current_index = upper_bound
+        return action_map
 
-    def to_numpy(self, action: ActionInstance) -> np.int64:
+    def to_int(self, action: ActionInstance) -> int:
         """Converting an action instance to numpy."""
         int_to_return = 0
-        found_action = False
-        for action_range in self.range_classes:
-            action_expected = action_range.instance_class
-            action_space_possible = action_range.get_action_space_possible()
-            action_int_required = spaces.flatdim(action_space_possible) + 1
-            if action.__class__ is action_expected:
-                np_value = spaces.flatten(
-                    action_expected.get_action_space(), action.to_numpy_data()
-                )
-                if isinstance(np_value, np.int):
-                    assert np_value < action_int_required
-                    int_to_return += np_value
-                elif isinstance(np_value, np.ndarray):
-                    assert len(np_value) == 1, f"Must be one dim array {action}"
-                    assert (
-                        np_value[0] < action_int_required
-                    ), f"{action_range}:{np_value} does not fit into space {action_space_possible} -> int({action_int_required})"
-                    int_to_return += np_value[0]
-                found_action = True
-            else:
-                int_to_return += action_int_required
+        action_map = self.get_action_map()
+        for action_range, lower, upper in action_map:
+            if isinstance(action, action_range.instance_class):
+                value = action.to_int()
+                final_action_value = lower + value
+                assert lower <= final_action_value <= upper
+                return final_action_value
+        raise InvalidActionError(f"Cannot map action: {action}")
 
-        assert found_action, f"Must contain at least one suitable action: {action}"
-        assert isinstance(int_to_return, np.int64)
-        return int_to_return
-
-    def from_numpy(self, numpy_input: np.int64) -> ActionInstance:
+    def from_int(self, input_value: int) -> ActionInstance:
         """Converting from numpy to an action instance."""
         int_space_searched = 0
+        action_map = self.get_action_map()
         found_action = None
-        for action_range in self.range_classes:
-            action_expected = action_range.instance_class
-            action_space_possible = action_range.get_action_space_possible()
-            action_int_required = spaces.flatdim(action_space_possible) + 1
-            print(
-                f"Eval range: for {action_range}, {int_space_searched} -> {action_int_required}"
-            )
-            if (
-                int_space_searched
-                <= numpy_input
-                < (int_space_searched + action_int_required)
-            ):
-                action_space = action_expected.get_action_space()
-                if isinstance(action_space, spaces.MultiBinary):
-                    return action_expected.from_numpy(
-                        np.array([numpy_input - int_space_searched])
-                    )
-                else:
-                    raise NotImplementedError(
-                        f"Cannot convert in into type {action_space}"
-                    )
-            else:
-                int_space_searched += action_int_required
-        raise InvalidActionError(f"Invalid action input: {numpy_input}.")
+        for action_range, lower, upper in action_map:
+            if lower <= input_value < upper:
+                return action_range.instance_class.from_int(input_value - lower)
+        raise InvalidActionError(f"Invalid action input: {input_value}.")
