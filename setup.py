@@ -8,7 +8,7 @@ requirements = ["numpy", "gym", "tensorflow", "keras-rl", "wandb"]
 setuptools.setup(
     name="playtest",
     license="MIT",
-    version="0.0.2",
+    version="0.0.4",
     description="A library for rapid prototyping of boardgames.",
     author="Boris Lau",
     author_email="boris@techie.im",
