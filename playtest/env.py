@@ -9,6 +9,7 @@ warnings.simplefilter(action="ignore", category=DeprecationWarning)  # noqa
 
 import numpy as np
 import gym
+import gym.utils.seeding as seeding
 import gym.spaces as spaces
 from rl.core import Agent
 
@@ -36,9 +37,11 @@ class GameWrapperEnvironment(gym.Env):
     cached_space: Optional[spaces.Space]
     # Number of times input is invalid
     continuous_invalid_inputs: List[ActionInstance]
-    max_continuous_invalid_inputs: int = 100
+    # Number of times before we choose a random action and continue
+    max_continuous_invalid_inputs: int = 5
+    verbose: bool
 
-    def __init__(self, game: Game):
+    def __init__(self, game: Game, verbose=True):
         self.game = game
         self.action_factory = game.action_factory
         self.state = game.state
@@ -48,6 +51,7 @@ class GameWrapperEnvironment(gym.Env):
         self.next_accepted_action = None
         self.cached_space = None
         self.continuous_invalid_inputs = []
+        self.verbose = verbose
 
     @property
     def n_agents(self) -> int:
@@ -57,7 +61,7 @@ class GameWrapperEnvironment(gym.Env):
     def action_space(self) -> spaces.Space:
         """Return the size of action space
         """
-        return self.action_factory.action_space
+        return spaces.MultiBinary(self.action_factory.number_of_actions)
 
     def __get_all_players_observation_with_action(self) -> List[np.ndarray]:
         """This return a map of the action space,
@@ -121,13 +125,14 @@ class GameWrapperEnvironment(gym.Env):
         assert self.next_accepted_action
 
         action_to_send = None
+        lock_reward = False
 
         for player_id, a in enumerate(agents_action):
             assert isinstance(
-                a, np.ndarray
-            ), f"Expect action of type nd.array (got: {a.__class__})"
+                int(a), int
+            ), f"Expect action of type int (got: {a.__class__})"
             # Decode value from open_ai
-            action = self.action_factory.from_numpy(agents_action[player_id])
+            action = self.action_factory.from_int(agents_action[player_id])
             assert isinstance(action, ActionInstance)
             # logging.warning(f"Player {player_id} got action: {action}")
             if player_id == self.next_player:
@@ -135,8 +140,23 @@ class GameWrapperEnvironment(gym.Env):
                     action, self.next_accepted_action
                 ):
                     action_to_send = action
+                elif (
+                    len(self.continuous_invalid_inputs)
+                    >= self.max_continuous_invalid_inputs
+                ):
+                    if self.verbose:
+                        logging.warning(
+                            f"Getting continue bad input: {self.continuous_invalid_inputs}."
+                            "Going to pick a random action"
+                        )
+                    action_to_send = self.action_factory.pick_random_action(
+                        self.next_accepted_action
+                    )
+                    lock_reward = True
+                    rewards[player_id] = Reward.INVALID_ACTION
                 else:
-                    logging.warning(f"🙅‍♂️ Action {action} is not valid.")
+                    if self.verbose:
+                        logging.warning(f"🙅‍♂️ Action {action} is not valid.")
                     self.continuous_invalid_inputs.append(action)
                     rewards[player_id] = Reward.INVALID_ACTION
 
@@ -149,19 +169,12 @@ class GameWrapperEnvironment(gym.Env):
                 else:
                     rewards[player_id] = Reward.VALID_ACTION
 
+        observations = self.__get_all_players_observation_with_action()
+        terminal = [False for _ in range(self.game.number_of_players)]
+
         # check if we have a valid action, and return that
         if not action_to_send:
-            termination = [False] * self.game.number_of_players
-            if (
-                len(self.continuous_invalid_inputs)
-                >= self.max_continuous_invalid_inputs
-            ):
-                logging.warning(
-                    f"Getting continue bad input: {self.continuous_invalid_inputs}"
-                )
-                termination = [True] * self.game.number_of_players
-            observations = self.__get_all_players_observation_with_action()
-            return (observations, rewards, termination, {})
+            return (observations, rewards, terminal, {})
         self.continuous_invalid_inputs = []
 
         # Send the action to the step
@@ -175,7 +188,6 @@ class GameWrapperEnvironment(gym.Env):
             stopped_iteration = True
 
         # Let's get observation for each of the player
-        observations = self.__get_all_players_observation_with_action()
         if stopped_iteration:
             return (
                 observations,
@@ -186,10 +198,10 @@ class GameWrapperEnvironment(gym.Env):
                 {},
             )
 
-        rewards[self.next_player] = last_reward
+        if not lock_reward:
+            rewards[self.next_player] = last_reward
         self.next_player = next_player
         self.next_accepted_action = accepted_action
-        terminal = [False for _ in range(self.game.number_of_players)]
 
         return observations, rewards, terminal, {}
 
@@ -210,55 +222,27 @@ class GameWrapperEnvironment(gym.Env):
         return
 
 
-class HumanAgent(Agent):
-    """Represent a human agent in the world."""
-
-    env: GameWrapperEnvironment
-
-    def __init__(self, env):
-        self.env = env
-
-    def forward(self, observation) -> np.ndarray:
-        """Forward a step for the agent
-
-        :return: observation setup
-        """
-        env = self.env
-        assert env.next_player is not None
-        pprint(env.to_player_data(env.next_player))
-        prompt = "👀 Please enter action ({}):".format(env.next_accepted_action)
-        chosen_action = None
-        while not chosen_action:
-            try:
-                given_action = input(prompt)
-                chosen_action = env.action_factory.from_str(given_action)
-                print(f"😋 Chosen action: {chosen_action}")
-            except InvalidActionError as e:
-                print("🙅‍♂️ Invalid action.")
-                print(str(e))
-
-        # Now from the chosen action, convert back to np.ndarray
-        chosen_action_numpy = env.action_factory.to_numpy(chosen_action)
-        return chosen_action_numpy
-
-
 class EnvironmentInteration:
     """Represent a game that can be played"""
 
     env: GameWrapperEnvironment
     agents: List[Agent]
     episodes: int
+    rounds: Optional[int]
     max_same_player: int
 
-    def __init__(self, env, agents, episodes=50, max_same_player=20):
+    def __init__(self, env, agents, episodes=1, rounds=None, max_same_player=20):
         assert len(agents) == env.n_agents
         self.env = env
         self.agents = agents
         self.episodes = episodes
+        self.rounds = rounds
         self.max_same_player = max_same_player
 
     def play(self):
         env = self.env
+
+        rounds = 0
         for ep_i in range(self.episodes):
             done_n = [False for _ in range(env.n_agents)]
             ep_reward = 0
@@ -279,18 +263,18 @@ class EnvironmentInteration:
                             f"playing more than {self.max_same_player} rounds"
                         )
 
-                default_numpy_action = env.action_factory.to_numpy(
+                default_numpy_action = env.action_factory.to_int(
                     env.action_factory.default
                 )
                 action_n = [default_numpy_action] * env.n_agents
 
-                # print(f"Player {player_id+1} taking action...")
+                # print(f"Player {player_id} taking action...")
 
                 action_taken = self.agents[player_id].forward(obs_n[player_id])
                 # print(f"Action taken: {action_taken}")
                 assert isinstance(
-                    action_taken, np.ndarray
-                ), "Forward agent should return an ndarray. (Got: {action_taken.__class__})"
+                    int(action_taken), int
+                ), f"Forward agent {self.agents[player_id]} should return an integer. (Got: {action_taken.__class__})"
 
                 action_n[player_id] = action_taken
 
@@ -299,6 +283,13 @@ class EnvironmentInteration:
                 env.render()
 
                 last_player = player_id
+
+                # Check how many rounds we have done.
+                rounds += 1
+                if self.rounds is not None and rounds >= self.rounds:
+                    print(f"Reached {rounds} rounds. exiting.")
+                    env.close()
+                    return
 
             print("Episode #{} Reward: {}".format(ep_i, ep_reward))
         env.close()

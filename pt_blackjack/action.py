@@ -2,6 +2,7 @@ import numpy as np
 
 import gym.spaces as spaces
 
+from pt_blackjack.constant import Param
 from pt_blackjack.state import State
 from playtest.action import (
     ActionFactory as BaseActionFactory,
@@ -51,8 +52,9 @@ ACTION_HIT = ActionHit()
 class ActionBet(ActionSingleValue[State]):
     key = "bet"
 
-    minimum_value = 0
-    maximum_value = 0xFF
+    # Minimum bet
+    minimum_value = 1
+    maximum_value = Param.max_bank
 
     def resolve(self, s, player_id, a=None):
         # TODO: move action resolve in here
@@ -66,6 +68,9 @@ class ActionBetRange(ActionSingleValueRange[ActionBet, State]):
         ps = state.get_player_state(player_id)
         self.lower = 1
         self.upper = ps.bank.amount
+        assert (
+            self.lower < self.upper
+        ), f"Both upper and lower equal - player {player_id} out of cash?"
 
 
 class ActionFactory(BaseActionFactory):

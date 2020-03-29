@@ -43,10 +43,11 @@ class Game(Generic[S, AF, P]):
     action_factory: AF
     players: List[Player]
     last_player_reward: int
+    verbose: bool
 
-    def __init__(self, param: P):
+    def __init__(self, param: P, verbose=True):
         self.param = param
-        self.announcer = Announcer()
+        self.announcer = Announcer(verbose=verbose)
         self.last_player_reward = Reward.DEFAULT
         if getattr(self, "players", None) is None:
             assert param.number_of_players > 0, "Must have some players!"

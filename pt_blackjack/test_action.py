@@ -4,9 +4,9 @@ import pytest
 
 import gym.spaces as spaces
 
+from playtest.action import InvalidActionError
 
 from pt_blackjack.action import ActionBetRange, ActionBet
-
 from pt_blackjack.test_state import state
 
 
@@ -22,8 +22,11 @@ def test_action_range_valid(action_range):
 
 
 def test_action_range_invalid(action_range):
-    """Test that action has an open upper bound"""
-    action = ActionBet(100)
+    """Test that action has an inclusive upper bound"""
+    assert str(action_range) == "bet(1->10)"
+    action = ActionBet(10)
+    assert action_range.is_valid(action)
+    action = ActionBet(11)
     assert not action_range.is_valid(action)
 
 
@@ -38,11 +41,13 @@ def test_action_str(action_range):
 
 
 def test_action_range_numpy(action_range: ActionBetRange):
-    assert action_range.get_action_space_possible()
+    assert action_range.get_number_of_distinct_value() == 20
     assert action_range.to_numpy_data().tolist() == [1, 10]
 
 
 def test_action_numpy():
     action = ActionBet(3)
-    assert action.get_action_space()
-    assert action.to_numpy_data() == [3]
+    assert action.get_number_of_distinct_value() == 20
+    assert action.to_int() == 3 - ActionBet.minimum_value
+    with pytest.raises(InvalidActionError):
+        ActionBet(0)
