@@ -58,7 +58,7 @@ class GameWrapperEnvironment(gym.Env):
     def action_space(self) -> spaces.Space:
         """Return the size of action space
         """
-        return self.action_factory.action_space
+        return spaces.MultiBinary(self.action_factory.number_of_actions)
 
     def __get_all_players_observation_with_action(self) -> List[np.ndarray]:
         """This return a map of the action space,
@@ -125,10 +125,10 @@ class GameWrapperEnvironment(gym.Env):
 
         for player_id, a in enumerate(agents_action):
             assert isinstance(
-                a, np.ndarray
-            ), f"Expect action of type nd.array (got: {a.__class__})"
+                int(a), int
+            ), f"Expect action of type int (got: {a.__class__})"
             # Decode value from open_ai
-            action = self.action_factory.from_numpy(agents_action[player_id])
+            action = self.action_factory.from_int(agents_action[player_id])
             assert isinstance(action, ActionInstance)
             # logging.warning(f"Player {player_id} got action: {action}")
             if player_id == self.next_player:
@@ -252,7 +252,7 @@ class EnvironmentInteration:
                             f"playing more than {self.max_same_player} rounds"
                         )
 
-                default_numpy_action = env.action_factory.to_numpy(
+                default_numpy_action = env.action_factory.to_int(
                     env.action_factory.default
                 )
                 action_n = [default_numpy_action] * env.n_agents
@@ -262,8 +262,8 @@ class EnvironmentInteration:
                 action_taken = self.agents[player_id].forward(obs_n[player_id])
                 # print(f"Action taken: {action_taken}")
                 assert isinstance(
-                    action_taken, np.int
-                ), f"Forward agent {self.agents[player_id]} should return an np.int. (Got: {action_taken.__class__})"
+                    int(action_taken), int
+                ), f"Forward agent {self.agents[player_id]} should return an integer. (Got: {action_taken.__class__})"
 
                 action_n[player_id] = action_taken
 

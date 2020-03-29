@@ -53,7 +53,7 @@ class ActionBet(ActionSingleValue[State]):
     key = "bet"
 
     # Minimum bet
-    minimum_value = 2
+    minimum_value = 1
     maximum_value = Param.max_bank
 
     def resolve(self, s, player_id, a=None):

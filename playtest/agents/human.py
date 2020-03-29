@@ -20,7 +20,7 @@ class HumanAgent(BaseAgent):
         """
         return input(prompt)
 
-    def forward(self, observation) -> np.int:
+    def forward(self, observation) -> int:
         """Forward a step for the agent
 
         :return: observation setup
@@ -40,5 +40,5 @@ class HumanAgent(BaseAgent):
                 print(str(e))
 
         # Now from the chosen action, convert back to np.ndarray
-        chosen_action_numpy = env.action_factory.to_numpy(chosen_action)
+        chosen_action_numpy = env.action_factory.to_int(chosen_action)
         return chosen_action_numpy

@@ -38,13 +38,13 @@ def test_action_str(action_range):
 
 
 def test_action_range_numpy(action_range: ActionBetRange):
-    assert action_range.get_number_of_distinct_value() == 19
+    assert action_range.get_number_of_distinct_value() == 20
     assert action_range.to_numpy_data().tolist() == [1, 10]
 
 
 def test_action_numpy():
     action = ActionBet(3)
-    assert action.get_number_of_distinct_value() == 19
-    assert action.to_int() == 3 - 2
+    assert action.get_number_of_distinct_value() == 20
+    assert action.to_int() == 3 - ActionBet.minimum_value
     with pytest.raises(InvalidActionError):
-        ActionBet(1)
+        ActionBet(0)
