@@ -10,6 +10,7 @@ class Param(ut.Param):
     max_score: int = 21
     number_of_rounds: int = 3
     max_hits: int = 3
+    max_bank: int = 20
 
 
 class Reward(ut.Reward):
