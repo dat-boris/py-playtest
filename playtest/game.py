@@ -113,8 +113,7 @@ class Game(Generic[S, AF, P]):
         """
         if accepted_action is None:
             accepted_action = self.action_factory.get_actionable_actions(
-                self.state, player_id, accepted_range=accepted_range,
-                no_wait=no_wait
+                self.state, player_id, accepted_range=accepted_range, no_wait=no_wait
             )
         else:
             warnings.warn("accepted_action will be removed", DeprecationWarning)
