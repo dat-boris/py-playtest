@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 """Run interactive agent for argparse
 """
+import os, sys
 import argparse
 from pprint import pprint
 
 import gym
+
+sys.path.insert(0, os.getcwd())
 
 from playtest.env import GameWrapperEnvironment
 from playtest.agents import KerasDQNAgent, train_agents
