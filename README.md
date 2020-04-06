@@ -3,6 +3,8 @@
 [![Build Status](https://travis-ci.org/dat-boris/py-playtest.svg?branch=master)](https://travis-ci.org/dat-boris/py-playtest)
 [![codecov](https://codecov.io/gh/dat-boris/py-playtest/branch/master/graph/badge.svg)](https://codecov.io/gh/dat-boris/py-playtest)
 [![Join the chat at https://gitter.im/py-playtest/community](https://badges.gitter.im/py-playtest/community.svg)](https://gitter.im/py-playtest/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Documentation Status](https://readthedocs.org/projects/py-playtest/badge/?version=latest)](https://py-playtest.readthedocs.io/en/latest/?badge=latest)
+
 
 A library for implementing framework to do virtual playtesting for
 boardgames.
