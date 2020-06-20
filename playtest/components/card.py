@@ -2,7 +2,7 @@ import logging
 import random
 from copy import copy
 import abc
-from typing import List, Type, Sequence, Optional, Dict, Generic, TypeVar
+from typing import List, Type, Sequence, Optional, Dict, Generic, TypeVar, Union
 
 import numpy as np
 import gym.spaces as spaces
@@ -50,14 +50,15 @@ class BaseCard(Component):
         assert False, "Reset should be handled by Deck"
 
     @classmethod
-    def struct_to_value(cls, struct) -> str:
+    def struct_to_value(cls, struct: Union[Dict, str]) -> str:
         """A method for converting structure value to the value string
         """
         assert isinstance(struct, str)
         return struct
 
+    # TODO: remove output type of str
     @classmethod
-    def value_to_struct(cls, value: str):
+    def value_to_struct(cls, value: str) -> Union[Dict, str]:
         """A method for converting the value to structure
         """
         return value
