@@ -86,7 +86,10 @@ class Card(BaseCard):
 C = TypeVar("C", bound=BaseCard)
 
 
+# TODO: Refactor this as a more generic component
 class Deck(Component, Generic[C]):
+    """Represent a list of Cards
+    """
 
     # This can be overridden to a specific Card type.
     # Note that the card must implement the method above.
@@ -98,7 +101,7 @@ class Deck(Component, Generic[C]):
     shuffle: bool
 
     @abc.abstractstaticmethod
-    def get_max_size() -> int:  # type: ignore
+    def get_max_size() -> int:
         """Return the maximum size of this class
 
         e.g. For a deck of cards will be 52
@@ -134,9 +137,6 @@ class Deck(Component, Generic[C]):
         # We use init_value to ensure that when we reset, we still
         # keep the same set of cards ready
         self.values = copy(self.init_value)
-
-    def to_data(self):
-        return [c.to_data() for c in self.values]
 
     def deal(self, other: "Deck", count=1, all=False):
         """Deal cards to another deck"""
@@ -176,23 +176,32 @@ class Deck(Component, Generic[C]):
     def __iter__(self):
         return iter(self.values)
 
-    # TODO: need fixing
+    def to_data(self):
+        return [c.to_data() for c in self.values]
+
     @classmethod
     def get_observation_space(cls) -> spaces.Space:
         """Return the observation space of this space
         """
-        # Represent a deck of 52 cards
         card_obs_space = cls.generic_card.get_observation_space()
         return spaces.Tuple([card_obs_space] * cls.get_max_size())
 
-    # # TODO: need fixing
-    # def to_numpy_data(self) -> np.ndarray:
-    #     raise NotImplementedError()
-    #     value_array = [c.to_numpy_data() for c in self.values]
-    #     assert len(value_array) <= self.max_size
-    #     return np.array(
-    #         value_array + [0] * (self.max_size - len(value_array)), dtype=np.uint8
-    #     )
+    def __get_null_card_data(self) -> Tuple[int, ...]:
+        """Return the null data object for the card
+        """
+        card_len = spaces.flatdim(self.generic_card.get_observation_space())
+        return tuple([0] * card_len)
+
+    def to_numpy_data(self) -> np.ndarray:
+        """Return numpy array based on returned data
+        """
+        value_array = [c.to_numpy_data() for c in self.values]
+        empty_slot_count = self.get_max_size() - len(value_array)
+        assert empty_slot_count >= 0, f"Deck have too many cards '{self.values}'"
+        if empty_slot_count >= 0:
+            value_array += [self.__get_null_card_data()] * empty_slot_count
+        assert len(value_array) == self.get_max_size()
+        return spaces.flatten(self.get_observation_space(), value_array)
 
 
 class BasicDeck(Deck):

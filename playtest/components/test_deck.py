@@ -1,3 +1,5 @@
+import numpy as np
+
 import gym.spaces as spaces
 
 from playtest.components.card import Card, BasicDeck as Deck
@@ -38,16 +40,18 @@ def test_partial_hand():
     """
     deck_empty = PartialDeck(cards=[])
     assert deck_empty.to_data() == []
-    assert deck_empty.to_numpy_data() == np.array([0] * PartialDeck.get_max_size())
+    assert (
+        deck_empty.to_numpy_data() == np.array([0, 0] * PartialDeck.get_max_size())
+    ).all()
 
     expected_first_card = Card.from_str("A,S")
     deck = PartialDeck(cards=[expected_first_card] * 2)
-    assert deck.to_data() == [expected_first_card * 2]
+    assert deck.to_data() == [expected_first_card.to_data()] * 2
     numpy_data = deck.to_numpy_data()
     assert len(numpy_data) == 2 * PartialDeck.get_max_size()
-    assert numpy_data[0:2] == expected_first_card.to_numpy_data()
-    assert numpy_data[2:4] == expected_first_card.to_numpy_data()
-    assert numpy_data[4:6] == [0, 0]
+    assert (numpy_data[0:2] == expected_first_card.to_numpy_data()).all()
+    assert (numpy_data[2:4] == expected_first_card.to_numpy_data()).all()
+    assert (numpy_data[4:6] == [0, 0]).all()
 
 
 def test_deck_deal():

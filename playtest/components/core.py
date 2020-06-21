@@ -35,12 +35,6 @@ class Component(abc.ABC):
         typeguard.check_type("value", value, Tuple[self.__get_value_type()])
         self.value = value
 
-    def to_data(self) -> Tuple[int, ...]:
-        """Return a tuple of integer to be represented
-        as data
-        """
-        return tuple(int(v) for v in self.value)
-
     def __eq__(self, x):
         """Return equality if structure is deeply equal"""
         # Numpy supports deep comparison n
@@ -78,6 +72,12 @@ class Component(abc.ABC):
                 for i, sv in enumerate(s.split(SEPERATOR))
             )
         )
+
+    def to_data(self) -> Tuple[int, ...]:
+        """Return a tuple of integer to be represented
+        as data
+        """
+        return tuple(int(v) for v in self.value)
 
     @classmethod
     def from_data(cls, data):
