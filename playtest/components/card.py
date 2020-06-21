@@ -1,8 +1,9 @@
+import enum
 import logging
 import random
 from copy import copy
 import abc
-from typing import List, Type, Sequence, Optional, Dict, Generic, TypeVar, Union
+from typing import List, Type, Sequence, Optional, Dict, Generic, TypeVar, Union, Tuple
 
 import numpy as np
 import gym.spaces as spaces
@@ -13,83 +14,51 @@ from .core import Component
 class BaseCard(Component):
     """Represent a baseCard to be implemented
 
-    The most important note is the value of the string,
-    which allows
+    The value can be any composite types which can be flattern
     """
 
-    # A serial id which is used to map to a value
-    uid: Optional[int]
-    # A string that represent the concise description of the card
-    value: str
     # A test wartermark used to test cards being moved in tests
     test_watermark: Optional[str]
 
-    # Represent the total number of unique cards
-    # Default to something large
-    total_unique_cards: int = 512
-
-    def __init__(self, value: str, uid=None, test_watermark=None):
-        self.value = value
-        assert isinstance(value, str), f"{value} is not a value card value"
-        # Ensure that value is stored in a canonical format
-        self.value = self.struct_to_value(self.value_to_struct(value))
-        self.uid = uid
+    def __init__(self, value, param=None, test_watermark=None):
         self.test_watermark = test_watermark
-
-    def __eq__(self, x):
-        return (
-            self.value == x.value
-            and self.uid == x.uid
-            and self.test_watermark == x.test_watermark
-        )
-
-    def __repr__(self):
-        return self.value
-
-    def reset(self):
-        assert False, "Reset should be handled by Deck"
+        super().__init__(value, param=param)
 
     @classmethod
-    def struct_to_value(cls, struct: Union[Dict, str]) -> str:
-        """A method for converting structure value to the value string
-        """
-        assert isinstance(struct, str)
-        return struct
-
-    # TODO: remove output type of str
-    @classmethod
-    def value_to_struct(cls, value: str) -> Union[Dict, str]:
-        """A method for converting the value to structure
-        """
-        return value
-
-    @classmethod
-    @abc.abstractmethod
     def get_all_cards(cls) -> Sequence["BaseCard"]:
         raise NotImplementedError()
 
-    def to_data(self):
-        return self.value + (f" [{self.uid}]" if self.uid is not None else "")
 
-    def get_observation_space(self) -> spaces.Space:
-        # Represent a deck of 52 cards
-        return spaces.Box(
-            low=0, high=self.total_unique_cards, shape=(1,), dtype=np.uint8,
-        )
+class CardSuite(enum.IntEnum):
+    """One character representing the suite
+    """
 
-    def to_numpy_data(self) -> int:
-        # logging.warn(f"class {self.__class__} has not implemented to_numpy_data")
-        assert self.uid is not None, f"Card {self} does not have uid"
-        return self.uid
+    S = 1
+    H = 2
+    D = 3
+    C = 4
+
+
+class CardNumber(enum.IntEnum):
+    A = 1
+    _2 = 2
+    _3 = 3
+    _4 = 4
+    _5 = 5
+    _6 = 6
+    _7 = 7
+    _8 = 8
+    _9 = 9
+    T = 10
+    J = 11
+    Q = 12
+    K = 13
 
 
 class Card(BaseCard):
 
-    all_suites = ["s", "h", "d", "c"]
-
-    value: str
-    # Represent the total number of unique cards
-    total_unique_cards: int = 52
+    value: Tuple[CardNumber, CardSuite]
+    value_type = (CardNumber, CardSuite)
 
     @property
     def suite(self):
@@ -97,26 +66,21 @@ class Card(BaseCard):
 
     @property
     def number(self) -> int:
-        number = self.value[0]
-        try:
-            return int(number)
-        except ValueError:
-            return {"T": 10, "J": 11, "Q": 12, "K": 13, "A": 1}[number]
-
-    def is_suite(self, suite: str):
-        return self.suite in suite
+        return int(self.value[0])
 
     @classmethod
-    def get_all_cards(cls, suites=all_suites):
+    def get_all_cards(cls):
         all_cards = []
-        for i in list(range(2, 10)) + ["T", "A", "J", "Q", "K"]:
-            for suite in suites:
-                all_cards.append(cls(f"{i}{suite}"))
+        for i in CardNumber:
+            for suite in CardSuite:
+                all_cards.append(cls((i, suite)))
         return all_cards
 
-    def to_numpy_data(self) -> int:
-        # ensure that this value is not zero (np.uint8 use zero as null)
-        return 1 + self.number * 4 + Card.all_suites.index(self.suite)
+    @classmethod
+    def get_observation_space(cls) -> spaces.Space:
+        return spaces.Box(
+            low=0, high=max(len(CardNumber), len(CardSuite)), shape=(2,), dtype=np.int8
+        )
 
 
 C = TypeVar("C", bound=BaseCard)
@@ -205,12 +169,13 @@ class Deck(Component, Generic[C]):
     def __iter__(self):
         return iter(self.cards)
 
-    def get_observation_space(self) -> spaces.Space:
+    @classmethod
+    def get_observation_space(cls) -> spaces.Space:
         # Represent a deck of 52 cards
         return spaces.Box(
             low=0,
-            high=self.generic_card.total_unique_cards,
-            shape=(self.max_size,),
+            high=cls.generic_card.total_unique_cards,
+            shape=(cls.max_size,),
             dtype=np.uint8,
         )
 
