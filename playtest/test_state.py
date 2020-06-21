@@ -91,15 +91,15 @@ def test_to_numpy(state):
 
     assert st_data, "Expect that we would have some data!"
     assert "deck" not in st_data, "We should not see the deck"
-    assert len(st_data["discarded"]) == 52, "We should see discarded"
+    assert len(st_data["discarded"]) == 52 * 2, "We should see discarded"
 
     # Should see all data of the player self, max size
-    assert st_data["self"]["hand"].tolist() == [0] * 52
+    assert st_data["self"]["hand"].tolist() == [0, 0] * 52
 
     # Should not see other player's data
     other_hand = st_data["others"][0]
     assert "hand" not in other_hand
-    assert other_hand["open_hand"].tolist() == [0] * 52
+    assert other_hand["open_hand"].tolist() == [0, 0] * 52
 
 
 def test_observational_space(state):
@@ -108,17 +108,17 @@ def test_observational_space(state):
     assert st_data, "Expect that we would have some data!"
     assert isinstance(st_data, spaces.Dict)
     assert "deck" not in st_data, "We should not see the deck"
-    assert isinstance(st_data["discarded"], spaces.Box)
-    assert st_data["discarded"].shape == (52,)
+    assert isinstance(st_data["discarded"], spaces.Tuple)
+    assert len(st_data["discarded"]) == 52
 
     # Should see all data of the player self, max size
     assert isinstance(st_data["self"], spaces.Dict)
     assert isinstance(st_data["self"], spaces.Dict)
-    assert isinstance(st_data["self"]["hand"], spaces.Box)
+    assert isinstance(st_data["self"]["hand"], spaces.Tuple)
 
     # Should not see other player's data
     assert isinstance(st_data["others"], spaces.Tuple)
     assert len(st_data["others"]) == 1
     other_hand = st_data["others"][0]
     assert "hand" not in other_hand
-    assert isinstance(other_hand["open_hand"], spaces.Box)
+    assert isinstance(other_hand["open_hand"], spaces.Tuple)

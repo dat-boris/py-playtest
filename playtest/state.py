@@ -100,6 +100,8 @@ class SubState(Component):
                 # e.g. attr_va.to_data()
                 to_data_func = getattr(attr_val, to_data_func_name)
                 val_dict[name] = to_data_func()
+            else:
+                raise RuntimeError(f"Received non component data in {name}")
         return val_dict
 
     @classmethod
@@ -108,7 +110,10 @@ class SubState(Component):
         for name, data_class in cls.__annotations__.items():
             assert name in data, "{} does not present in data.".format(name)
             if inspect.isclass(data_class) and issubclass(data_class, Component):
-                attr_instance = data_class(data[name])
+                attr_instance = data_class.from_data(data[name])
+                assert isinstance(
+                    attr_instance, Component
+                ), "f{data_class} did not return component"
                 setattr(instance, name, attr_instance)
         return instance
 

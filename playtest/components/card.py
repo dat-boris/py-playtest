@@ -95,13 +95,14 @@ class Deck(Component, Generic[C]):
     # Note that the card must implement the method above.
     generic_card: Type[C]
 
-    values: List[C]
+    value: List[C]
 
     init_value: List[C]
     shuffle: bool
 
-    @abc.abstractstaticmethod
-    def get_max_size() -> int:
+    @classmethod
+    @abc.abstractmethod
+    def get_max_size(cls) -> int:
         """Return the maximum size of this class
 
         e.g. For a deck of cards will be 52
@@ -109,7 +110,7 @@ class Deck(Component, Generic[C]):
         raise NotImplementedError()
 
     def __str__(self):
-        return "{}...".format(str(self.values[5:]))
+        return "{}...".format(str(self.value[5:]))
 
     def __init__(self, cards=None, shuffle=False, all_cards=False):
         assert getattr(
@@ -136,48 +137,48 @@ class Deck(Component, Generic[C]):
     def reset(self):
         # We use init_value to ensure that when we reset, we still
         # keep the same set of cards ready
-        self.values = copy(self.init_value)
+        self.value = copy(self.init_value)
 
     def deal(self, other: "Deck", count=1, all=False):
         """Deal cards to another deck"""
         if all:
             count = len(self)
         for _ in range(count):
-            assert self.values, f"Oops - Deck {self.__class__} ran out of card."
-            other.add(self.values.pop())
+            assert self.value, f"Oops - Deck {self.__class__} ran out of card."
+            other.add(self.value.pop())
 
     def pop(self, index=-1, count=1, all=False) -> List[C]:
         if all:
             count = len(self)
         cards_popped = []
         for _ in range(count):
-            cards_popped.append(self.values.pop(index))
+            cards_popped.append(self.value.pop(index))
         return cards_popped
 
     def move_to(self, other: "Deck", card: C):
         """Move a specific card to other deck"""
         assert isinstance(other, self.__class__)
-        self.values.remove(card)
+        self.value.remove(card)
         other.add(card)
 
     def add(self, card: C):
-        self.values.append(card)
+        self.value.append(card)
 
     def remove(self, card: C):
-        self.values.remove(card)
+        self.value.remove(card)
 
     def __len__(self):
-        return len(self.values)
+        return len(self.value)
 
     def __getitem__(self, i):
         assert isinstance(i, int), "Deck only takes integer subscription"
-        return self.values[i]
+        return self.value[i]
 
     def __iter__(self):
-        return iter(self.values)
+        return iter(self.value)
 
     def to_data(self):
-        return [c.to_data() for c in self.values]
+        return [c.to_data() for c in self.value]
 
     @classmethod
     def get_observation_space(cls) -> spaces.Space:
@@ -195,17 +196,19 @@ class Deck(Component, Generic[C]):
     def to_numpy_data(self) -> np.ndarray:
         """Return numpy array based on returned data
         """
-        value_array = [c.to_numpy_data() for c in self.values]
+        value_array = [c.to_numpy_data() for c in self.value]
         empty_slot_count = self.get_max_size() - len(value_array)
-        assert empty_slot_count >= 0, f"Deck have too many cards '{self.values}'"
+        assert empty_slot_count >= 0, f"Deck have too many cards '{self.value}'"
         if empty_slot_count >= 0:
             value_array += [self.__get_null_card_data()] * empty_slot_count
         assert len(value_array) == self.get_max_size()
         return spaces.flatten(self.get_observation_space(), value_array)
 
 
-class BasicDeck(Deck):
+class BasicDeck(Deck[Card]):
     generic_card = Card
+
+    value_type = tuple([Card] * 52)
 
     @staticmethod
     def get_max_size() -> int:

@@ -82,7 +82,14 @@ class Component(abc.ABC):
     @classmethod
     def from_data(cls, data):
         cls_value_type = cls.__get_value_type()
-        return cls(value=tuple(cls_value_type[i](sv) for i, sv in enumerate(data)))
+        data_value = []
+        for i, sv in enumerate(data):
+            sv_type = cls_value_type[i]
+            if issubclass(sv_type, Component):
+                data_value.append(sv_type.from_data(sv))
+            else:
+                data_value.append(sv_type(sv))
+        return cls(tuple(data_value))
 
     def to_numpy_data(self):
         return spaces.flatten(self.observation_space, self.to_data())
