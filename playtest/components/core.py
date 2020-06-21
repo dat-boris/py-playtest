@@ -21,18 +21,18 @@ class Component(abc.ABC):
 
     # Note this is a tuple - since this maps to the
     # open_ai_gym.Box space
-    value: Tuple
+    value: Union[Tuple, List]
     # TODO: remove this for python3.8, this is the type reflection of above
     value_type: Tuple[Type[Union[enum.IntEnum, int]], ...]
 
-    def __init__(self, value: Tuple, param=None):
+    def __init__(self, value: Union[Tuple, List], param=None):
         """Initialize state.
 
         :param param: Decide if we are going to initialize with param
         """
         typeguard.check_argument_types()
         # sometimes the type argument was not checked properly
-        typeguard.check_type("value", value, Tuple[self.get_value_type()])
+        typeguard.check_type("value", value, Tuple[self.__get_value_type()])
         self.value = value
 
     def to_data(self) -> Tuple[int, ...]:
@@ -43,7 +43,7 @@ class Component(abc.ABC):
 
     def __eq__(self, x):
         """Return equality if structure is deeply equal"""
-        # Numpy supports deep comparisop n
+        # Numpy supports deep comparison n
         return (self.to_numpy_data() == x.to_numpy_data()).all()
 
     def __repr__(self):
@@ -53,10 +53,10 @@ class Component(abc.ABC):
         )
 
     @classmethod
-    def get_value_type(cls) -> Tuple[Type[Union[enum.IntEnum, int]]]:
+    def __get_value_type(cls) -> Tuple[Type[Union[enum.IntEnum, int]]]:
         """Inspect the type signature of value"""
         if sys.version_info < (3, 8):
-            assert cls.get_value_type, "Must define value_type in python < ver3.8"
+            assert cls.__get_value_type, "Must define value_type in python < ver3.8"
             # TODO: ignore Pre 3.8 fixes
             return cls.value_type  # type: ignore
         sig = inspect.signature(cls)
@@ -69,7 +69,7 @@ class Component(abc.ABC):
 
         This automatically convert various enum into the properties.
         """
-        cls_value_type = cls.get_value_type()
+        cls_value_type = cls.__get_value_type()
         return cls(
             value=tuple(
                 cls_value_type[i][sv]
@@ -81,7 +81,7 @@ class Component(abc.ABC):
 
     @classmethod
     def from_data(cls, data):
-        cls_value_type = cls.get_value_type()
+        cls_value_type = cls.__get_value_type()
         return cls(value=tuple(cls_value_type[i](sv) for i, sv in enumerate(data)))
 
     def to_numpy_data(self):

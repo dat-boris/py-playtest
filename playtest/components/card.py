@@ -1,8 +1,8 @@
+import abc
 import enum
 import logging
 import random
 from copy import copy
-import abc
 from typing import List, Type, Sequence, Optional, Dict, Generic, TypeVar, Union, Tuple
 
 import numpy as np
@@ -92,15 +92,23 @@ class Deck(Component, Generic[C]):
     # Note that the card must implement the method above.
     generic_card: Type[C]
 
-    cards: List[C]
-    init_cards: List[C]
+    values: List[C]
+
+    init_value: List[C]
     shuffle: bool
-    max_size: int
+
+    @abc.abstractstaticmethod
+    def get_max_size() -> int:  # type: ignore
+        """Return the maximum size of this class
+
+        e.g. For a deck of cards will be 52
+        """
+        raise NotImplementedError()
 
     def __str__(self):
-        return "{}...".format(str(self.cards[5:]))
+        return "{}...".format(str(self.values[5:]))
 
-    def __init__(self, cards=None, shuffle=False, all_cards=False, max_size=52):
+    def __init__(self, cards=None, shuffle=False, all_cards=False):
         assert getattr(
             self, "generic_card", None
         ), f"Class {self.__class__} have not specificed generic_card"
@@ -118,74 +126,78 @@ class Deck(Component, Generic[C]):
                 for c in cards
             ]
 
-        self.init_cards = copy(cards)
-        self.max_size = max_size
+        self.init_value = copy(cards)
         self.shuffle = shuffle
         self.reset()
 
     def reset(self):
-        # We use init_cards to ensure that when we reset, we still
+        # We use init_value to ensure that when we reset, we still
         # keep the same set of cards ready
-        self.cards = copy(self.init_cards)
+        self.values = copy(self.init_value)
 
     def to_data(self):
-        return [c.to_data() for c in self.cards]
+        return [c.to_data() for c in self.values]
 
     def deal(self, other: "Deck", count=1, all=False):
         """Deal cards to another deck"""
         if all:
             count = len(self)
         for _ in range(count):
-            assert self.cards, f"Oops - Deck {self.__class__} ran out of card."
-            other.add(self.cards.pop())
+            assert self.values, f"Oops - Deck {self.__class__} ran out of card."
+            other.add(self.values.pop())
 
     def pop(self, index=-1, count=1, all=False) -> List[C]:
         if all:
             count = len(self)
         cards_popped = []
         for _ in range(count):
-            cards_popped.append(self.cards.pop(index))
+            cards_popped.append(self.values.pop(index))
         return cards_popped
 
     def move_to(self, other: "Deck", card: C):
         """Move a specific card to other deck"""
         assert isinstance(other, self.__class__)
-        self.cards.remove(card)
+        self.values.remove(card)
         other.add(card)
 
     def add(self, card: C):
-        self.cards.append(card)
+        self.values.append(card)
 
     def remove(self, card: C):
-        self.cards.remove(card)
+        self.values.remove(card)
 
     def __len__(self):
-        return len(self.cards)
+        return len(self.values)
 
     def __getitem__(self, i):
         assert isinstance(i, int), "Deck only takes integer subscription"
-        return self.cards[i]
+        return self.values[i]
 
     def __iter__(self):
-        return iter(self.cards)
+        return iter(self.values)
 
+    # TODO: need fixing
     @classmethod
     def get_observation_space(cls) -> spaces.Space:
+        """Return the observation space of this space
+        """
         # Represent a deck of 52 cards
-        return spaces.Box(
-            low=0,
-            high=cls.generic_card.total_unique_cards,
-            shape=(cls.max_size,),
-            dtype=np.uint8,
-        )
+        card_obs_space = cls.generic_card.get_observation_space()
+        return spaces.Tuple([card_obs_space] * cls.get_max_size())
 
-    def to_numpy_data(self) -> np.ndarray:
-        value_array = [c.to_numpy_data() for c in self.cards]
-        assert len(value_array) <= self.max_size
-        return np.array(
-            value_array + [0] * (self.max_size - len(value_array)), dtype=np.uint8
-        )
+    # # TODO: need fixing
+    # def to_numpy_data(self) -> np.ndarray:
+    #     raise NotImplementedError()
+    #     value_array = [c.to_numpy_data() for c in self.values]
+    #     assert len(value_array) <= self.max_size
+    #     return np.array(
+    #         value_array + [0] * (self.max_size - len(value_array)), dtype=np.uint8
+    #     )
 
 
 class BasicDeck(Deck):
     generic_card = Card
+
+    @staticmethod
+    def get_max_size() -> int:
+        return 52
