@@ -12,16 +12,16 @@ def test_card():
     with pytest.raises(TypeError):
         Card(value=(1, 3))
 
-    c = Card(value=(CardNumber.T, CardSuite.S))
-    c2 = Card(value=(CardNumber._9, CardSuite.D))
+    c = Card(value=[CardNumber.T, CardSuite.S])
+    c2 = Card(value=[CardNumber._9, CardSuite.D])
 
     data_representation = c.to_data()
     # TODO: note that should we represent as enum?
-    assert data_representation == (10, 1)
+    assert data_representation == [10, 1]
     new_obj = Card.from_data(data_representation)
-    assert new_obj.value == (10, 1)
+    assert new_obj.value == [10, 1]
 
-    assert isinstance(c.observation_space, spaces.Box)
+    assert isinstance(c.get_observation_space(), spaces.Box)
     # Note the box conversion convert this to an array
     assert (c.to_numpy_data() == np.array([10, 1])).all()
 

@@ -21,18 +21,16 @@ class Component(abc.ABC):
 
     # Note this is a tuple - since this maps to the
     # open_ai_gym.Box space
-    value: Union[Tuple, List]
+    value: Union[List]
     # TODO: remove this for python3.8, this is the type reflection of above
-    value_type: Tuple[Type[Union[enum.IntEnum, int]], ...]
+    value_type: Tuple[Type[Union[enum.IntEnum, int]]]
 
-    def __init__(self, value: Union[Tuple, List], param=None):
+    def __init__(self, value: List, param=None):
         """Initialize state.
 
         :param param: Decide if we are going to initialize with param
         """
         typeguard.check_argument_types()
-        # sometimes the type argument was not checked properly
-        typeguard.check_type("value", value, Tuple[self.__get_value_type()])
         self.value = value
 
     def __eq__(self, x):
@@ -47,7 +45,7 @@ class Component(abc.ABC):
         )
 
     @classmethod
-    def __get_value_type(cls) -> Tuple[Type[Union[enum.IntEnum, int]]]:
+    def __get_value_type(cls) -> List[Type[Union[enum.IntEnum, int]]]:
         """Inspect the type signature of value"""
         if sys.version_info < (3, 8):
             assert cls.__get_value_type, "Must define value_type in python < ver3.8"
@@ -65,19 +63,19 @@ class Component(abc.ABC):
         """
         cls_value_type = cls.__get_value_type()
         return cls(
-            value=tuple(
+            value=[
                 cls_value_type[i][sv]
                 if issubclass(cls_value_type[i], enum.IntEnum)
                 else int(sv)
                 for i, sv in enumerate(s.split(SEPERATOR))
-            )
+            ]
         )
 
-    def to_data(self) -> Tuple[int, ...]:
-        """Return a tuple of integer to be represented
+    def to_data(self) -> List[int]:
+        """Return a list of integer to be represented
         as data
         """
-        return tuple(int(v) for v in self.value)
+        return [int(v) for v in self.value]
 
     @classmethod
     def from_data(cls, data):
@@ -89,18 +87,12 @@ class Component(abc.ABC):
                 data_value.append(sv_type.from_data(sv))
             else:
                 data_value.append(sv_type(sv))
-        return cls(tuple(data_value))
+        return cls(data_value)
 
     def to_numpy_data(self):
-        return spaces.flatten(self.observation_space, self.to_data())
+        return spaces.flatten(self.get_observation_space(), self.to_data())
 
     @classmethod
     @abc.abstractmethod
     def get_observation_space(cls) -> spaces.Space:
         raise NotImplementedError()
-
-    @property
-    def observation_space(self) -> spaces.Space:
-        """Return the expected abstraction space
-        """
-        return self.get_observation_space()

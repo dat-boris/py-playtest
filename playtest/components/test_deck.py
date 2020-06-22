@@ -9,7 +9,7 @@ def test_observation():
     """Ensure that the returned deck fits into openai's observation
     """
     deck1 = Deck(all_cards=True, shuffle=False)
-    obs_space = deck1.observation_space
+    obs_space = deck1.get_observation_space()
     assert isinstance(obs_space, spaces.Space)
 
     expected_first_card = Card.from_str("A,S")

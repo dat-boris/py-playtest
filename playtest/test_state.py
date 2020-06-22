@@ -103,7 +103,7 @@ def test_to_numpy(state):
 
 
 def test_observational_space(state):
-    st_data = state.observation_space
+    st_data = state.get_observation_space_from_player()
 
     assert st_data, "Expect that we would have some data!"
     assert isinstance(st_data, spaces.Dict)

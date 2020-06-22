@@ -87,7 +87,10 @@ class GameWrapperEnvironment(gym.Env):
         if self.cached_space is not None:
             return self.cached_space
         self.cached_space = spaces.Tuple(
-            [self.action_factory.action_space_possible, self.state.observation_space,]
+            [
+                self.action_factory.action_space_possible,
+                self.state.get_observation_space_from_player(),
+            ]
         )
         return self.cached_space
 

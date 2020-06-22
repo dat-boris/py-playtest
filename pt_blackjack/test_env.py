@@ -42,8 +42,8 @@ def test_obs_space(env):
     assert "hand" not in space[1]["others"][0], "You cannot see other hands"
 
     assert spaces.flatdim(space[1]) == (
-        52
-        + 52  # discarded
+        52 * 2
+        + 52 * 2  # discarded
         + 2  # player hand
         # player bank + bet  # other player hands
         + (1 + 1) * (AGENT_COUNT - 1)

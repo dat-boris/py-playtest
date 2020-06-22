@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List
 
 import numpy as np
 import gym.spaces as spaces
@@ -8,13 +8,15 @@ from .core import Component
 
 class Token(Component):
 
-    value: Tuple[int]
+    value: List[int]
     value_type = (int,)
     max_amount: int
 
-    def __init__(self, values=(0,), max_amount=0xFFFF):
+    def __init__(self, value=None, max_amount=0xFFFF):
+        if value is None:
+            value = [0]
         self.max_amount = max_amount
-        super().__init__(values)
+        super().__init__(value)
         self.reset()
 
     @property

@@ -57,8 +57,8 @@ class CardNumber(enum.IntEnum):
 
 class Card(BaseCard):
 
-    value: Tuple[CardNumber, CardSuite]
-    value_type = (CardNumber, CardSuite)
+    value: List[enum.IntEnum]
+    value_type = [CardNumber, CardSuite]
 
     @property
     def suite(self):
@@ -73,7 +73,7 @@ class Card(BaseCard):
         all_cards = []
         for i in CardNumber:
             for suite in CardSuite:
-                all_cards.append(cls((i, suite)))
+                all_cards.append(cls([i, suite]))
         return all_cards
 
     @classmethod
@@ -187,11 +187,11 @@ class Deck(Component, Generic[C]):
         card_obs_space = cls.generic_card.get_observation_space()
         return spaces.Tuple([card_obs_space] * cls.get_max_size())
 
-    def __get_null_card_data(self) -> Tuple[int, ...]:
+    def __get_null_card_data(self) -> List[int]:
         """Return the null data object for the card
         """
         card_len = spaces.flatdim(self.generic_card.get_observation_space())
-        return tuple([0] * card_len)
+        return [0] * card_len
 
     def to_numpy_data(self) -> np.ndarray:
         """Return numpy array based on returned data
@@ -208,7 +208,7 @@ class Deck(Component, Generic[C]):
 class BasicDeck(Deck[Card]):
     generic_card = Card
 
-    value_type = tuple([Card] * 52)
+    value_type = [Card] * 52
 
     @staticmethod
     def get_max_size() -> int:

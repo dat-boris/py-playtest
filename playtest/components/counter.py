@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List
 
 import numpy as np
 import gym.spaces as spaces
@@ -8,7 +8,7 @@ from .core import Component
 
 class Counter(Component):
 
-    value: Tuple[int]
+    value: List[int]
     value_type = (int,)
     max_amount = 0xFFFF
 

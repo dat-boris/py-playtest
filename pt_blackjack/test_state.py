@@ -23,8 +23,8 @@ def test_serialize(state):
     assert len(st_data["discarded"]) == 0
 
     player_state = st_data["players"][0]
-    assert player_state["bank"] == (10,)
-    assert player_state["bet"] == (0,)
+    assert player_state["bank"] == [10]
+    assert player_state["bet"] == [0]
 
     new_state = State.from_data(st_data)
 

@@ -12,14 +12,14 @@ def test_counter():
     with pytest.raises(TypeError):
         c = Counter(value=3)
 
-    c = Counter(value=(3,))
+    c = Counter(value=[3])
 
     data_representation = c.to_data()
-    assert data_representation == (3,)
+    assert data_representation == [3]
     new_obj = Counter.from_data(data_representation)
-    assert new_obj.value == (3,)
+    assert new_obj.value == [3]
 
-    assert isinstance(c.observation_space, spaces.Box)
+    assert isinstance(c.get_observation_space(), spaces.Box)
     # Note the box conversion convert this to an array
     assert c.to_numpy_data() == np.array([3])
 
