@@ -87,19 +87,19 @@ def test_visible_data(state):
 
 
 def test_to_numpy(state):
-    st_data = state.to_player_numpy_data(0)
+    st_data = state.to_player_data(0)
 
     assert st_data, "Expect that we would have some data!"
     assert "deck" not in st_data, "We should not see the deck"
-    assert len(st_data["discarded"]) == 52 * 2, "We should see discarded"
+    assert len(st_data["discarded"]) == 52, "We should see discarded"
 
     # Should see all data of the player self, max size
-    assert st_data["self"]["hand"].tolist() == [0, 0] * 52
+    assert st_data["self"]["hand"].tolist() == [[0, 0]] * 52
 
     # Should not see other player's data
     other_hand = st_data["others"][0]
     assert "hand" not in other_hand
-    assert other_hand["open_hand"].tolist() == [0, 0] * 52
+    assert other_hand["open_hand"].tolist() == [[0, 0]] * 52
 
 
 def test_observational_space(state):

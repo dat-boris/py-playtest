@@ -177,8 +177,17 @@ class Deck(Component, Generic[C]):
     def __iter__(self):
         return iter(self.value)
 
-    def to_data(self):
-        return [c.to_data() for c in self.value]
+    # TODO: fill_array should be False
+    def to_data(self, fill_array=True):
+        value_array = [c.to_numpy_data() for c in self.value]
+        if not fill_array:
+            return value_array
+        empty_slot_count = self.get_max_size() - len(value_array)
+        assert empty_slot_count >= 0, f"Deck have too many cards '{self.value}'"
+        if empty_slot_count >= 0:
+            value_array += [self.generic_card.get_null_data()] * empty_slot_count
+        assert len(value_array) == self.get_max_size()
+        return value_array
 
     @classmethod
     def get_observation_space(cls) -> spaces.Space:
@@ -196,12 +205,7 @@ class Deck(Component, Generic[C]):
     def to_numpy_data(self) -> np.ndarray:
         """Return numpy array based on returned data
         """
-        value_array = [c.to_numpy_data() for c in self.value]
-        empty_slot_count = self.get_max_size() - len(value_array)
-        assert empty_slot_count >= 0, f"Deck have too many cards '{self.value}'"
-        if empty_slot_count >= 0:
-            value_array += [self.__get_null_card_data()] * empty_slot_count
-        assert len(value_array) == self.get_max_size()
+        value_array = self.to_data(fill_array=True)
         return spaces.flatten(self.get_observation_space(), value_array)
 
 

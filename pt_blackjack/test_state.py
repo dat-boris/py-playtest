@@ -20,7 +20,9 @@ def test_serialize(state):
 
     assert st_data, "Data is what we expected"
     assert len(st_data["deck"]) == 52
-    assert len(st_data["discarded"]) == 0
+    # TODO: fill_array is full at the moment
+    assert len(st_data["discarded"]) == 52, "We always fill to empty array"
+    assert st_data["discarded"][0] == [0, 0]
 
     player_state = st_data["players"][0]
     assert player_state["bank"] == [10]

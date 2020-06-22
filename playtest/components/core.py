@@ -81,6 +81,9 @@ class Component(abc.ABC):
     def from_data(cls, data):
         cls_value_type = cls.__get_value_type()
         data_value = []
+        if data == cls.get_null_data():
+            # null data, skipping
+            return None
         for i, sv in enumerate(data):
             sv_type = cls_value_type[i]
             if issubclass(sv_type, Component):
@@ -91,6 +94,10 @@ class Component(abc.ABC):
 
     def to_numpy_data(self):
         return spaces.flatten(self.get_observation_space(), self.to_data())
+
+    @classmethod
+    def get_null_data(cls):
+        return [0 for _ in cls.value_type]
 
     @classmethod
     @abc.abstractmethod

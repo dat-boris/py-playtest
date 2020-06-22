@@ -195,36 +195,6 @@ class FullState(SubState, Generic[S]):
 
         return all_data
 
-    def to_player_numpy_data(self, player_id: int) -> Dict[str, np.ndarray]:
-        all_data = self.to_visible_numpy_data()
-        all_data["self"] = {}
-        all_data["others"] = []
-        example_state = self.players[0]
-        for pid, player_state in enumerate(self.players):
-            if pid == player_id:
-                all_data["self"] = player_state.to_numpy_data()
-                expected_obs = example_state.get_observation_space_full()
-                assert (
-                    spaces.flatten(expected_obs, all_data["self"]).size
-                    == expected_obs.shape
-                )
-            else:
-                # Only add visible data
-                other_player_state = player_state.to_visible_numpy_data()
-                # NOTE: we probably can fix this another way
-                assert (
-                    other_player_state
-                ), "You must be able to observe other player's data"
-                expected_obs = example_state.get_observation_space_visible()
-                assert (
-                    spaces.flatten(expected_obs, other_player_state).size
-                    == expected_obs.shape
-                )
-
-                all_data["others"].append(other_player_state)
-
-        return all_data
-
     @classmethod
     def get_observation_space(cls):
         raise NotImplementedError("Use get_observation_space_from_player instead.")
