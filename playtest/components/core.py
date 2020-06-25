@@ -40,8 +40,11 @@ class Component(abc.ABC):
 
     def __repr__(self):
         """Return a readable string with seperator seperating"""
-        return SEPERATOR.join(
-            [d.name if isinstance(d, enum.IntEnum) else str(d) for d in self.value]
+        return "{}({})".format(
+            self.__class__.__name__,
+            SEPERATOR.join(
+                [d.name if isinstance(d, enum.IntEnum) else str(d) for d in self.value]
+            )
         )
 
     @classmethod
@@ -60,8 +63,16 @@ class Component(abc.ABC):
         """Return the object from parsing the input string
 
         This automatically convert various enum into the properties.
+
+        This can be of string:
+
+            Card(10,S)
+            10,S
         """
         cls_value_type = cls.__get_value_type()
+        bracket_group = re.match(r'\w(\(.*\))')
+        if bracket_group:
+            s = bracket_group.group(1)
         return cls(
             value=[
                 cls_value_type[i][sv]

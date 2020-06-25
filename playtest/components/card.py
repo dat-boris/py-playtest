@@ -58,7 +58,7 @@ class CardNumber(enum.IntEnum):
 class Card(BaseCard):
 
     value: List[enum.IntEnum]
-    value_type = [CardNumber, CardSuite]
+    value_type = (CardNumber, CardSuite)
 
     @property
     def suite(self):
