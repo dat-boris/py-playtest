@@ -10,6 +10,7 @@ def test_card():
     """Testing counter as a simple conversion
     """
     with pytest.raises(TypeError):
+        # Excpecting list of enums
         Card(value=(1, 3))
 
     c = Card(value=[CardNumber.T, CardSuite.S])
