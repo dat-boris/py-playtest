@@ -43,16 +43,19 @@ class SubState(Component):
             else:
                 attr_val.reset()
 
-    def to_data(self):
-        return self._to_data_from_spec(Visibility.NONE)
-
-    def to_visible_data(self):
-        return self._to_data_from_spec(Visibility.ALL)
-
-    def to_numpy_data(self):
+    def to_data(self, to_data_func_name="to_data"):
         return self._to_data_from_spec(
-            Visibility.NONE, to_data_func_name="to_numpy_data",
-        )
+            Visibility.NONE, to_data_func_name=to_data_func_name)
+
+    def to_visible_data(self, to_data_func_name="to_data"):
+        return self._to_data_from_spec(
+            Visibility.ALL, to_data_func_name=to_data_func_name)
+
+    # XXX: doesnt makes sense, we want top level to collapse this
+    # def to_numpy_data(self):
+    #     return self._to_data_from_spec(
+    #         Visibility.NONE, to_data_func_name="to_numpy_data",
+    #     )
 
     def get_observation_space(self) -> spaces.Space:
         """Get visible observational space.
@@ -113,7 +116,7 @@ class SubState(Component):
                 attr_instance = data_class.from_data(data[name])
                 assert isinstance(
                     attr_instance, Component
-                ), "f{data_class} did not return component"
+                ), f"{data_class} did not return component"
                 setattr(instance, name, attr_instance)
         return instance
 
@@ -181,23 +184,37 @@ class FullState(SubState, Generic[S]):
         assert isinstance(player_id, int)
         return self.players[player_id]
 
-    def to_player_data(self, player_id: int):
-        all_data = self._to_data_from_spec(Visibility.SELF)
+    def to_player_data(self, player_id: int, for_numpy=False) -> Dict:
+        """Return data structure for numpy related setup
+
+        :for_numpy: return if this is consumed by numpy.  This will fill
+          the array of data accordingly
+        """
+        to_data_func_name = "to_data"
+        if for_numpy:
+            to_data_func_name = "to_data_for_numpy"
+        all_data = self._to_data_from_spec(
+            Visibility.SELF,
+            to_data_func_name=to_data_func_name
+        )
         all_data["self"] = {}
         all_data["others"] = []
 
         for pid, player_state in enumerate(self.players):
             if pid == player_id:
-                all_data["self"] = player_state.to_data()
+                all_data["self"] = player_state.to_data(
+                    to_data_func_name=to_data_func_name)
             else:
                 # Only add visible data
-                all_data["others"].append(player_state.to_visible_data())
+                all_data["others"].append(player_state.to_visible_data(
+                    to_data_func_name=to_data_func_name))
 
         return all_data
 
     @classmethod
     def get_observation_space(cls):
-        raise NotImplementedError("Use get_observation_space_from_player instead.")
+        raise NotImplementedError(
+            "Use get_observation_space_from_player instead.")
 
     def get_observation_space_from_player(self) -> spaces.Space:
         obs_dict = self._to_data_from_spec(
@@ -209,6 +226,7 @@ class FullState(SubState, Generic[S]):
 
         number_of_players = len(self.players)
         obs_dict["others"] = spaces.Tuple(
-            [example_state.get_observation_space_visible()] * (number_of_players - 1)
+            [example_state.get_observation_space_visible()] *
+            (number_of_players - 1)
         )
         return spaces.Dict(obs_dict)

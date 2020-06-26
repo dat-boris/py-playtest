@@ -213,7 +213,7 @@ class GameWrapperEnvironment(gym.Env):
         """
         pass
 
-    def to_player_data(self, player_id: int):
+    def to_player_data(self, player_id: int) -> Dict:
         return self.state.to_player_data(player_id)
 
     def seed(self, n):

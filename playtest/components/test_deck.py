@@ -17,10 +17,10 @@ def test_observation():
     deck_data = deck1.to_data()
     assert deck_data[0] == expected_first_card.to_data()
 
-    numpy_data = deck1.to_numpy_data()
-    assert len(numpy_data) == 52 * 2, "Each card represented by 2 integer"
-    first_card = numpy_data[0:2]
-    assert Card.from_data(first_card) == expected_first_card
+    deck1_data = deck1.to_numpy_data()
+    assert len(deck1_data) == 52 * 2, "Each card represented by 2 integer"
+    first_card = deck1_data[0:2]
+    assert (first_card == expected_first_card.to_numpy_data()).all()
 
 
 class PartialDeck(Deck):
@@ -41,7 +41,8 @@ def test_partial_hand():
     deck_empty = PartialDeck(cards=[])
     assert deck_empty.to_data() == []
     assert (
-        deck_empty.to_numpy_data() == np.array([0, 0] * PartialDeck.get_max_size())
+        deck_empty.to_numpy_data() == np.array(
+            Card.get_null_data() * PartialDeck.get_max_size())
     ).all()
 
     expected_first_card = Card.from_str("A,S")
@@ -51,7 +52,7 @@ def test_partial_hand():
     assert len(numpy_data) == 2 * PartialDeck.get_max_size()
     assert (numpy_data[0:2] == expected_first_card.to_numpy_data()).all()
     assert (numpy_data[2:4] == expected_first_card.to_numpy_data()).all()
-    assert (numpy_data[4:6] == [0, 0]).all()
+    assert (numpy_data[4:6] == Card.get_null_data()).all()
 
 
 def test_deck_deal():
@@ -60,7 +61,8 @@ def test_deck_deal():
 
     deck1.deal(deck2, count=2)
     expected = Deck([Card.from_str(c) for c in ["K,C", "K,D"]]).to_data()
-    assert deck2.to_data() == expected
+    deck2_data = deck2.to_data()
+    assert deck2_data == expected
 
 
 def test_deck_value():

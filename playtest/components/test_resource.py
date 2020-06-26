@@ -44,7 +44,7 @@ def test_resources():
     assert (r.to_numpy_data() == np.array([2, 3])).all()
 
     # TODO (boris): Not quiet human friendly!
-    assert repr(r) == "2,3", "Simple string presentation"
+    assert repr(r) == "FooBarResource(2,3)", "Simple string presentation"
     assert FooBarResource.from_str("2,3") == r
 
 

@@ -26,5 +26,5 @@ def test_counter():
     # Comparison depends on numpy
     assert new_obj == c, "Comparison works with numpy"
 
-    assert repr(c) == "3", "Str representation works"
+    assert repr(c) == "Counter(3)", "Str representation works"
     assert c.from_str("3") == c

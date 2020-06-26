@@ -177,11 +177,11 @@ class Deck(Component, Generic[C]):
     def __iter__(self):
         return iter(self.value)
 
-    # TODO: fill_array should be False
-    def to_data(self, fill_array=True):
-        value_array = [c.to_numpy_data() for c in self.value]
-        if not fill_array:
-            return value_array
+    def to_data(self):
+        return [c.to_data() for c in self.value]
+
+    def to_data_for_numpy(self):
+        value_array = self.to_data()
         empty_slot_count = self.get_max_size() - len(value_array)
         assert empty_slot_count >= 0, f"Deck have too many cards '{self.value}'"
         if empty_slot_count >= 0:
@@ -205,7 +205,7 @@ class Deck(Component, Generic[C]):
     def to_numpy_data(self) -> np.ndarray:
         """Return numpy array based on returned data
         """
-        value_array = self.to_data(fill_array=True)
+        value_array = self.to_data_for_numpy()
         return spaces.flatten(self.get_observation_space(), value_array)
 
 

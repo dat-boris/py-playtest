@@ -29,7 +29,7 @@ def test_card():
     # Comparison depends on numpy
     assert new_obj == c, "Comparison works with numpy"
 
-    assert repr(c) == "T,S", "Str representation works"
+    assert repr(c) == "Card(T,S)", "Str representation works"
     assert Card.from_str("T,S") == c
-    assert repr(c2) == "_9,D", "Str representation works"
+    assert repr(c2) == "Card(_9,D)", "Str representation works"
     assert Card.from_str("_9,D") == c2

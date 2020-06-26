@@ -1,3 +1,4 @@
+import re
 import sys
 import abc
 import enum
@@ -70,7 +71,7 @@ class Component(abc.ABC):
             10,S
         """
         cls_value_type = cls.__get_value_type()
-        bracket_group = re.match(r'\w(\(.*\))')
+        bracket_group = re.match(r'\w(\(.*\))', s)
         if bracket_group:
             s = bracket_group.group(1)
         return cls(
@@ -87,6 +88,13 @@ class Component(abc.ABC):
         as data
         """
         return [int(v) for v in self.value]
+
+    def to_data_for_numpy(self) -> List[int]:
+        """Return a list of data of fixed size, suitable for final
+        flattening for open_gym.flatten
+        """
+        # Only required if we are flattening the to_data action
+        return self.to_data()
 
     @classmethod
     def from_data(cls, data):
@@ -108,7 +116,7 @@ class Component(abc.ABC):
 
     @classmethod
     def get_null_data(cls):
-        return [0 for _ in cls.value_type]
+        return [-1 for _ in cls.value_type]
 
     @classmethod
     @abc.abstractmethod
