@@ -16,6 +16,8 @@ env:
 install:
   - pip install pipenv
   - pipenv install --dev
+  # Debugging package installed
+  - pip freeze
 
 # run test
 script:
