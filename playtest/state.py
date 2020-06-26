@@ -43,18 +43,18 @@ class SubState(Component):
             else:
                 attr_val.reset()
 
-    def to_data(self):
-        return self._to_data_from_spec(Visibility.NONE)
-
-    def to_visible_data(self):
-        return self._to_data_from_spec(Visibility.ALL)
-
-    def to_numpy_data(self):
+    def to_data(self, to_data_func_name="to_data"):
         return self._to_data_from_spec(
-            Visibility.NONE, to_data_func_name="to_numpy_data",
+            Visibility.NONE, to_data_func_name=to_data_func_name
         )
 
-    def get_observation_space(self) -> spaces.Space:
+    def to_visible_data(self, to_data_func_name="to_data"):
+        return self._to_data_from_spec(
+            Visibility.ALL, to_data_func_name=to_data_func_name
+        )
+
+    # TODO: Note that this is should be classmethod
+    def get_observation_space(self) -> spaces.Space:  # type: ignore
         """Get visible observational space.
 
         Notice that we use the suffix `_full` for the naming, as this
@@ -100,6 +100,8 @@ class SubState(Component):
                 # e.g. attr_va.to_data()
                 to_data_func = getattr(attr_val, to_data_func_name)
                 val_dict[name] = to_data_func()
+            else:
+                raise RuntimeError(f"Received non component data in {name}")
         return val_dict
 
     @classmethod
@@ -108,7 +110,10 @@ class SubState(Component):
         for name, data_class in cls.__annotations__.items():
             assert name in data, "{} does not present in data.".format(name)
             if inspect.isclass(data_class) and issubclass(data_class, Component):
-                attr_instance = data_class(data[name])
+                attr_instance = data_class.from_data(data[name])
+                assert isinstance(
+                    attr_instance, Component
+                ), f"{data_class} did not return component"
                 setattr(instance, name, attr_instance)
         return instance
 
@@ -176,38 +181,39 @@ class FullState(SubState, Generic[S]):
         assert isinstance(player_id, int)
         return self.players[player_id]
 
-    def to_player_data(self, player_id: int):
-        all_data = self._to_data_from_spec(Visibility.SELF)
+    def to_player_data(self, player_id: int, for_numpy=False) -> Dict:
+        """Return data structure for numpy related setup
+
+        :for_numpy: return if this is consumed by numpy.  This will fill
+          the array of data accordingly
+        """
+        to_data_func_name = "to_data"
+        if for_numpy:
+            to_data_func_name = "to_data_for_numpy"
+        all_data = self._to_data_from_spec(
+            Visibility.SELF, to_data_func_name=to_data_func_name
+        )
         all_data["self"] = {}
         all_data["others"] = []
 
         for pid, player_state in enumerate(self.players):
             if pid == player_id:
-                all_data["self"] = player_state.to_data()
+                all_data["self"] = player_state.to_data(
+                    to_data_func_name=to_data_func_name
+                )
             else:
                 # Only add visible data
-                all_data["others"].append(player_state.to_visible_data())
+                all_data["others"].append(
+                    player_state.to_visible_data(to_data_func_name=to_data_func_name)
+                )
 
         return all_data
 
-    def to_player_numpy_data(self, player_id: int) -> Dict[str, np.ndarray]:
-        all_data = self.to_visible_numpy_data()
-        all_data["self"] = {}
-        all_data["others"] = []
-        for pid, player_state in enumerate(self.players):
-            if pid == player_id:
-                all_data["self"] = player_state.to_numpy_data()
-            else:
-                # Only add visible data
-                other_player_state = player_state.to_visible_numpy_data()
-                # NOTE: we probably can fix this another way
-                assert (
-                    other_player_state
-                ), "You must be able to observe other player's data"
-                all_data["others"].append(other_player_state)
-        return all_data
+    @classmethod
+    def get_observation_space(cls):
+        raise NotImplementedError("Use get_observation_space_from_player instead.")
 
-    def get_observation_space(self) -> spaces.Space:
+    def get_observation_space_from_player(self) -> spaces.Space:
         obs_dict = self._to_data_from_spec(
             Visibility.SELF, to_data_func_name="get_observation_space",
         )

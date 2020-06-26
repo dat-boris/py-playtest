@@ -18,8 +18,8 @@ class PlayerState(SubState):
 
     def __init__(self, param=None):
         self.hand = BasicDeck([])  # max=5, visibility='owner'
-        self.bank = Token(param.starting_pot if param else 0)
-        self.bet = Token(0)  # visibility='all'
+        self.bank = Token([param.starting_pot] if param else [0])
+        self.bet = Token([0])  # visibility='all'
 
 
 class State(FullState):

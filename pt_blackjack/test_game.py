@@ -87,7 +87,7 @@ def test_find_winner(game: Blackjack):
     assert winner is None
 
     # Make player 0 the loser!
-    s.get_player_state(0).bank.amount = 0
+    s.get_player_state(0).bank.value = [0]
 
     # Now player 1 win!
     winner = game.find_winner()

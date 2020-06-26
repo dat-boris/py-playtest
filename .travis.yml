@@ -15,7 +15,11 @@ env:
 # install packages
 install:
   - pip install pipenv
-  - pipenv install --dev
+  - pipenv install --dev --keep-outdated
+  # Force a downgrade keras to 2.3.1
+  - pip install keras==2.3.1
+  # Debugging package installed
+  - pip freeze
 
 # run test
 script:

@@ -78,7 +78,7 @@ class GameWrapperEnvironment(gym.Env):
             obs[p.id] = spaces.flatten(
                 # Note this includes action observation
                 self.observation_space,
-                [action_obs, self.state.to_player_numpy_data(p.id)],
+                [action_obs, self.state.to_player_data(p.id, for_numpy=True)],
             )
         return obs
 
@@ -87,7 +87,10 @@ class GameWrapperEnvironment(gym.Env):
         if self.cached_space is not None:
             return self.cached_space
         self.cached_space = spaces.Tuple(
-            [self.action_factory.action_space_possible, self.state.observation_space,]
+            [
+                self.action_factory.action_space_possible,
+                self.state.get_observation_space_from_player(),
+            ]
         )
         return self.cached_space
 
@@ -210,7 +213,7 @@ class GameWrapperEnvironment(gym.Env):
         """
         pass
 
-    def to_player_data(self, player_id: int):
+    def to_player_data(self, player_id: int) -> Dict:
         return self.state.to_player_data(player_id)
 
     def seed(self, n):

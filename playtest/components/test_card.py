@@ -1,27 +1,35 @@
-from playtest.components.card import Card, BasicDeck as Deck
+import pytest
+import numpy as np
+
+import gym.spaces as spaces
+
+from .card import Card, CardNumber, CardSuite
 
 
-def test_card_deal():
-    deck1 = Deck(all_cards=True, shuffle=False)
-    deck2 = Deck([])
+def test_card():
+    """Testing counter as a simple conversion
+    """
+    with pytest.raises(TypeError):
+        # Excpecting list of enums
+        Card(value=(1, 3))
 
-    deck1.deal(deck2, count=2)
-    expected = Deck([Card(c) for c in ["Kc", "Kd"]]).to_data()
-    assert deck2.to_data() == expected
+    c = Card(value=[CardNumber.T, CardSuite.S])
+    c2 = Card(value=[CardNumber._9, CardSuite.D])
 
+    data_representation = c.to_data()
+    # TODO: note that should we represent as enum?
+    assert data_representation == [10, 1]
+    new_obj = Card.from_data(data_representation)
+    assert new_obj.value == [10, 1]
 
-def test_card_value():
-    deck = Deck([Card(c) for c in ["Tc", "Ac"]])
-    assert sum([c.number for c in deck]) == 11
+    assert isinstance(c.get_observation_space(), spaces.Box)
+    # Note the box conversion convert this to an array
+    assert (c.to_numpy_data() == np.array([10, 1])).all()
 
+    # Comparison depends on numpy
+    assert new_obj == c, "Comparison works with numpy"
 
-def test_reset():
-    deck = Deck(all_cards=True)
-    assert len(deck) == 52
-    deck.reset()
-    assert len(deck) == 52
-
-    deck = Deck([Card(c) for c in ["Ad", "Qs"]])
-    assert len(deck) == 2
-    deck.reset()
-    assert deck[0] == Card("Ad")
+    assert repr(c) == "Card(T,S)", "Str representation works"
+    assert Card.from_str("T,S") == c
+    assert repr(c2) == "Card(_9,D)", "Str representation works"
+    assert Card.from_str("_9,D") == c2
