@@ -51,12 +51,6 @@ class SubState(Component):
         return self._to_data_from_spec(
             Visibility.ALL, to_data_func_name=to_data_func_name)
 
-    # XXX: doesnt makes sense, we want top level to collapse this
-    # def to_numpy_data(self):
-    #     return self._to_data_from_spec(
-    #         Visibility.NONE, to_data_func_name="to_numpy_data",
-    #     )
-
     def get_observation_space(self) -> spaces.Space:
         """Get visible observational space.
 

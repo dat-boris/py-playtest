@@ -78,7 +78,7 @@ class GameWrapperEnvironment(gym.Env):
             obs[p.id] = spaces.flatten(
                 # Note this includes action observation
                 self.observation_space,
-                [action_obs, self.state.to_player_data(p.id)],
+                [action_obs, self.state.to_player_data(p.id, for_numpy=True)],
             )
         return obs
 

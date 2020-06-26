@@ -112,7 +112,10 @@ class Component(abc.ABC):
         return cls(data_value)
 
     def to_numpy_data(self):
-        return spaces.flatten(self.get_observation_space(), self.to_data())
+        return spaces.flatten(
+            self.get_observation_space(),
+            self.to_data_for_numpy()
+        )
 
     @classmethod
     def get_null_data(cls):

@@ -202,12 +202,6 @@ class Deck(Component, Generic[C]):
         card_len = spaces.flatdim(self.generic_card.get_observation_space())
         return [0] * card_len
 
-    def to_numpy_data(self) -> np.ndarray:
-        """Return numpy array based on returned data
-        """
-        value_array = self.to_data_for_numpy()
-        return spaces.flatten(self.get_observation_space(), value_array)
-
 
 class BasicDeck(Deck[Card]):
     generic_card = Card
