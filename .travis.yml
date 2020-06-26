@@ -15,7 +15,7 @@ env:
 # install packages
 install:
   - pip install pipenv
-  - pipenv install --dev --keep-outdated --ignore-pipfile --clear --verbose
+  - pipenv install --dev --keep-outdated --ignore-pipfile --clear
   # Debugging package installed
   - pip freeze
 
