@@ -45,7 +45,7 @@ class Component(abc.ABC):
             self.__class__.__name__,
             SEPERATOR.join(
                 [d.name if isinstance(d, enum.IntEnum) else str(d) for d in self.value]
-            )
+            ),
         )
 
     @classmethod
@@ -71,7 +71,7 @@ class Component(abc.ABC):
             10,S
         """
         cls_value_type = cls.__get_value_type()
-        bracket_group = re.match(r'\w(\(.*\))', s)
+        bracket_group = re.match(r"\w(\(.*\))", s)
         if bracket_group:
             s = bracket_group.group(1)
         return cls(
@@ -112,10 +112,7 @@ class Component(abc.ABC):
         return cls(data_value)
 
     def to_numpy_data(self):
-        return spaces.flatten(
-            self.get_observation_space(),
-            self.to_data_for_numpy()
-        )
+        return spaces.flatten(self.get_observation_space(), self.to_data_for_numpy())
 
     @classmethod
     def get_null_data(cls):

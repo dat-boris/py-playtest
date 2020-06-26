@@ -13,5 +13,5 @@ __all__ = [
     "Counter",
     "Token",
     "Announcer",
-    "Resource"
+    "Resource",
 ]

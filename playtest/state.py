@@ -45,14 +45,16 @@ class SubState(Component):
 
     def to_data(self, to_data_func_name="to_data"):
         return self._to_data_from_spec(
-            Visibility.NONE, to_data_func_name=to_data_func_name)
+            Visibility.NONE, to_data_func_name=to_data_func_name
+        )
 
     def to_visible_data(self, to_data_func_name="to_data"):
         return self._to_data_from_spec(
-            Visibility.ALL, to_data_func_name=to_data_func_name)
+            Visibility.ALL, to_data_func_name=to_data_func_name
+        )
 
     # TODO: Note that this is should be classmethod
-    def get_observation_space(self) -> spaces.Space:      # type: ignore
+    def get_observation_space(self) -> spaces.Space:  # type: ignore
         """Get visible observational space.
 
         Notice that we use the suffix `_full` for the naming, as this
@@ -189,8 +191,7 @@ class FullState(SubState, Generic[S]):
         if for_numpy:
             to_data_func_name = "to_data_for_numpy"
         all_data = self._to_data_from_spec(
-            Visibility.SELF,
-            to_data_func_name=to_data_func_name
+            Visibility.SELF, to_data_func_name=to_data_func_name
         )
         all_data["self"] = {}
         all_data["others"] = []
@@ -198,18 +199,19 @@ class FullState(SubState, Generic[S]):
         for pid, player_state in enumerate(self.players):
             if pid == player_id:
                 all_data["self"] = player_state.to_data(
-                    to_data_func_name=to_data_func_name)
+                    to_data_func_name=to_data_func_name
+                )
             else:
                 # Only add visible data
-                all_data["others"].append(player_state.to_visible_data(
-                    to_data_func_name=to_data_func_name))
+                all_data["others"].append(
+                    player_state.to_visible_data(to_data_func_name=to_data_func_name)
+                )
 
         return all_data
 
     @classmethod
     def get_observation_space(cls):
-        raise NotImplementedError(
-            "Use get_observation_space_from_player instead.")
+        raise NotImplementedError("Use get_observation_space_from_player instead.")
 
     def get_observation_space_from_player(self) -> spaces.Space:
         obs_dict = self._to_data_from_spec(
@@ -221,7 +223,6 @@ class FullState(SubState, Generic[S]):
 
         number_of_players = len(self.players)
         obs_dict["others"] = spaces.Tuple(
-            [example_state.get_observation_space_visible()] *
-            (number_of_players - 1)
+            [example_state.get_observation_space_visible()] * (number_of_players - 1)
         )
         return spaces.Dict(obs_dict)

@@ -41,8 +41,8 @@ def test_partial_hand():
     deck_empty = PartialDeck(cards=[])
     assert deck_empty.to_data() == []
     assert (
-        deck_empty.to_numpy_data() == np.array(
-            Card.get_null_data() * PartialDeck.get_max_size())
+        deck_empty.to_numpy_data()
+        == np.array(Card.get_null_data() * PartialDeck.get_max_size())
     ).all()
 
     expected_first_card = Card.from_str("A,S")

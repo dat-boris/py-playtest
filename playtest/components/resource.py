@@ -31,10 +31,9 @@ class Resource(Component, Generic[R]):
     def stack(self) -> Dict[str, int]:
         """Convert value of resource into a structure
         """
-        return { # type: ignore
-            r.name: self.value[i]
-            for i, r in enumerate(self.generic_resource)
-            }
+        return {  # type: ignore
+            r.name: self.value[i] for i, r in enumerate(self.generic_resource)
+        }
 
     @classmethod
     def upgrade_char(cls, s: R) -> R:
@@ -105,4 +104,3 @@ class Resource(Component, Generic[R]):
     #             amount -= to_discard
     #     self.value = self.struct_to_value(data)
     #     return self.__class__(self.struct_to_value(popped_data))
-

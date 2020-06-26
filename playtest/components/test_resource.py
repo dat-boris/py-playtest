@@ -54,4 +54,3 @@ def test_resource_comparison():
     assert r.has_required(FooBarResource([2, 1])) is True
     assert r.has_required(FooBarResource([4, 5])) is False
     assert r.has_required(FooBarResource([4, 1])) is False
-
