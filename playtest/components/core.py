@@ -24,7 +24,7 @@ class Component(abc.ABC):
     # open_ai_gym.Box space
     value: Union[List]
     # TODO: remove this for python3.8, this is the type reflection of above
-    value_type: Tuple[Type[Union[enum.IntEnum, int]]]
+    value_type: Sequence[Type[Union[enum.IntEnum, int, "Component"]]]
 
     def __init__(self, value: List, param=None):
         """Initialize state.

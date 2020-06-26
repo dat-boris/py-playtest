@@ -51,7 +51,8 @@ class SubState(Component):
         return self._to_data_from_spec(
             Visibility.ALL, to_data_func_name=to_data_func_name)
 
-    def get_observation_space(self) -> spaces.Space:
+    # TODO: Note that this is should be classmethod
+    def get_observation_space(self) -> spaces.Space:      # type: ignore
         """Get visible observational space.
 
         Notice that we use the suffix `_full` for the naming, as this
