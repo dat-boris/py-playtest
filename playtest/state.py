@@ -130,6 +130,7 @@ class FullState(SubState, Generic[S]):
 
     player_state_class: Type[S]
     players: Sequence[S]
+    current_player_id: int
 
     def __init__(self, param=None):
         """Initialize the players
@@ -144,6 +145,10 @@ class FullState(SubState, Generic[S]):
     @property
     def number_of_players(self) -> int:
         return len(self.players)
+
+    def next_player(self) -> int:
+        self.current_player_id = (self.current_player_id + 1) % self.number_of_players
+        return self.current_player_id
 
     def reset(self):
         super().reset()

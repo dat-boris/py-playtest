@@ -2,7 +2,18 @@ import re
 import abc
 import itertools
 import random
-from typing import Optional, Type, Sequence, Dict, TypeVar, Generic, Set, List, Tuple
+from typing import (
+    Optional,
+    Type,
+    Sequence,
+    Dict,
+    TypeVar,
+    Generic,
+    Set,
+    List,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 
@@ -12,6 +23,27 @@ from .state import FullState
 from .logger import Announcer
 from .constant import Param
 from .components.core import Component
+
+# TODO: these are classes that I'm faking now
+
+
+class BaseDecision:
+    pass
+
+
+class Action:
+    """# Action
+
+    This is a particular action that is derived from Decision
+    above.
+    """
+
+    # Decision that is provided
+    decision_type: str
+    value: Union[int, bool]
+
+    def is_decision(self, decision_type: str):
+        return self.decision_type == decision_type
 
 
 class InvalidActionError(RuntimeError):
@@ -27,6 +59,7 @@ class ActionInstance(abc.ABC, Generic[S]):
     The instance of the action can be of acted on.
     """
 
+    # Describe the name of the string
     key: str
 
     def __init__(self, value):
@@ -100,7 +133,6 @@ class ActionRange(abc.ABC, Generic[AI, S]):
 
     player_id: int
 
-    @abc.abstractmethod
     def __init__(self, state: S, player_id: int):
         self.player_id = player_id
         self.actionable = True
@@ -277,6 +309,10 @@ class ActionSingleValue(ActionInstance[S]):
         value = np_value + cls.minimum_value
         assert cls.minimum_value <= value <= cls.maximum_value
         return cls(value)
+
+
+# TODO: rename this as this phrase is a lot better
+ActionInt = ActionSingleValue
 
 
 ASV = TypeVar("ASV", bound=ActionSingleValue)
@@ -602,3 +638,23 @@ class ActionFactory(Generic[S]):
             if lower <= input_value < upper:
                 return action_range.instance_class.from_int(input_value - lower)
         raise InvalidActionError(f"Invalid action input: {input_value}.")
+
+
+# TODO: Rename these
+class ActionIntInSet:
+    def __init__(self, value):
+        pass
+
+
+class ActionBool:
+    def __init__(self):
+        pass
+
+
+class ActionIntInRange:
+    def __init__(self, lower, upper):
+        pass
+
+
+class BaseDecision:
+    pass

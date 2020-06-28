@@ -87,7 +87,28 @@ class Component(abc.ABC):
         """Return a list of integer to be represented
         as data
         """
-        return [int(v) for v in self.value]
+        cls_value_type = self.__get_value_type()
+        data_value = []
+        assert len(self.value) == len(
+            cls_value_type
+        ), f"Expected {self.value} which is not type {cls_value_type} "
+        for i, sv in enumerate(self.value):
+            sv_type = cls_value_type[i]
+            coerced_sv = None
+            if issubclass(sv_type, Component):
+                coerced_sv = sv.to_data()
+            elif issubclass(sv_type, enum.IntEnum):
+                coerced_sv = sv_type(sv)
+            else:
+                assert (
+                    sv_type is int
+                ), f"Expected value '{sv}' is not of type '{sv_type}'"
+                coerced_sv = int(sv)
+            assert isinstance(
+                coerced_sv, sv_type
+            ), f"Expected value '{coerced_sv}' is not of type '{sv_type}'"
+            data_value.append(coerced_sv)
+        return data_value
 
     def to_data_for_numpy(self) -> List[int]:
         """Return a list of data of fixed size, suitable for final
