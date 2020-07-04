@@ -9,6 +9,7 @@ e.g. The explicitness for two class, can we collapse into one class if okay?
 Let's err on the side of noisiness for now.
 """
 import re
+import enum
 import numpy as np
 from collections import OrderedDict
 from typing import Set, List, Union
@@ -20,15 +21,16 @@ import gym.spaces as spaces
 from .constant import Param
 import playtest.action as acn
 from .test_state import MockState
+from .action_range import action_bool
 
 
-class MockActionName(acn.ActionNameEnum):
+class MockActionName(enum.Enum):
     DECIDE_BOOLEAN = "bool"
     DECIDE_INT_IN_RANGE = "range"
     DECIDE_INT_IN_SET = "set"
 
 
-class MockDecision(acn.BaseDecision[MockActionName]):
+class MockDecision(acn.BaseDecision):
     """Mock decision for testing rendering
     """
 
@@ -36,9 +38,23 @@ class MockDecision(acn.BaseDecision[MockActionName]):
 
     decision_ranges = OrderedDict(
         [
-            (MockActionName.DECIDE_BOOLEAN, acn.ActionBool()),
-            (MockActionName.DECIDE_INT_IN_RANGE, acn.ActionIntInRange(0, 10)),
-            (MockActionName.DECIDE_INT_IN_SET, acn.ActionIntInSet({1, 3, 5})),
+            (
+                MockActionName.DECIDE_BOOLEAN,
+                action_bool.ActionBooleanRange(MockActionName.DECIDE_BOOLEAN, None),
+            ),
+            # (
+            #     MockActionName.DECIDE_INT_IN_RANGE,
+            #     acn.ActionIntInRange(
+            #         MockActionName.DECIDE_INT_IN_RANGE,
+            #         (0, 10)
+            #     ),
+            # (
+            #     MockActionName.DECIDE_INT_IN_SET,
+            #     acn.ActionIntInSet(
+            #         MockActionName.DECIDE_INT_IN_SET,
+            #         {1, 3, 5}
+            #     )
+            # ),
         ]
     )
 

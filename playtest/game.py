@@ -1,3 +1,4 @@
+import enum
 from typing import (
     List,
     Tuple,
@@ -17,8 +18,13 @@ import gym.spaces as spaces
 
 from .constant import Param, Reward
 from .state import FullState
-from .action import ActionFactory, ActionInstance, ActionRange
 from .logger import Announcer
+
+# TODO: remove these
+from .action import ActionInstance
+
+ActionFactory = None
+ActionRange = None
 
 
 class Player:
