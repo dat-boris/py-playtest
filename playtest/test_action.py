@@ -22,20 +22,23 @@ import playtest.action as acn
 from .test_state import MockState
 
 
-class MockDecision(acn.BaseDecision):
-    """Mock decision for testing rendering
-    """
-
+class MockActionName(acn.ActionNameEnum):
     DECIDE_BOOLEAN = "bool"
     DECIDE_INT_IN_RANGE = "range"
     DECIDE_INT_IN_SET = "set"
 
-    all_decision = OrderedDict(
+
+class MockDecision(acn.BaseDecision[MockActionName]):
+    """Mock decision for testing rendering
+    """
+
+    action_enum = MockActionName
+
+    decision_ranges = OrderedDict(
         [
-            # Unit: Card ID
-            (DECIDE_BOOLEAN, acn.ActionBool()),
-            (DECIDE_INT_IN_RANGE, acn.ActionIntInRange(0, 10)),
-            (DECIDE_INT_IN_SET, acn.ActionIntInSet({1, 3, 5})),
+            (MockActionName.DECIDE_BOOLEAN, acn.ActionBool()),
+            (MockActionName.DECIDE_INT_IN_RANGE, acn.ActionIntInRange(0, 10)),
+            (MockActionName.DECIDE_INT_IN_SET, acn.ActionIntInSet({1, 3, 5})),
         ]
     )
 
@@ -43,12 +46,13 @@ class MockDecision(acn.BaseDecision):
 @pytest.fixture
 def md() -> MockDecision:
     md = MockDecision(
+        # This gives the the specific decisions space
         {
-            MockDecision.DECIDE_BOOLEAN: True,
-            MockDecision.DECIDE_INT_IN_SET: {3, 5},
-            MockDecision.DECIDE_INT_IN_RANGE: (1, 3),
-        },
-        current_player_id=0,
+            MockActionName.DECIDE_BOOLEAN: True,
+            # Note this is subset of the set
+            MockActionName.DECIDE_INT_IN_SET: {3, 5},
+            MockActionName.DECIDE_INT_IN_RANGE: (1, 3),
+        }
     )
     return md
 
@@ -56,13 +60,11 @@ def md() -> MockDecision:
 def test_decision_check_bool(md: MockDecision):
     """Test that we created out decisions correctly
     """
-
-    # Converting decision
-    bool_action = Action.from_str("bool()")
-    assert md.is_valid(bool_action)
+    bool_action = md.action_from_str("bool()")
+    assert md.is_legal(bool_action)
 
 
-@pytest.xfail
+@pytest.mark.xfail
 def test_set_action(md: MockDecision):
     int_in_set_action = Action.from_str("set(2)")
     assert md.is_valid(int_in_set_action)
@@ -71,7 +73,7 @@ def test_set_action(md: MockDecision):
     assert not md.is_valid(invalid_action)
 
 
-@pytest.xfail
+@pytest.mark.xfail
 def test_range_action(md: MockDecision):
     int_in_range_action = Action.from_str("range(2)")
 
@@ -81,13 +83,13 @@ def test_range_action(md: MockDecision):
     assert not md.is_valid(invalid_action)
 
 
-@pytest.xfail
+@pytest.mark.xfail
 def test_action_factor_action_space(md: MockDecision):
     assert md.number_of_actions == 3
 
 
-@pytest.xfail
-def test_md_to_action_ing(md: MockDecision):
+@pytest.mark.xfail
+def test_md_to_action_int(md: MockDecision):
     """Action only takes int, so we have to convert this
     into a valid int somehow!
     """
@@ -108,3 +110,8 @@ def test_md_to_action_ing(md: MockDecision):
     # since wait is the first item in MockActionFactory
     action = md.from_int(0)
     assert action == Action.from_str("range(10)")
+
+
+@pytest.mark.xfail
+def pick_random_action(md: MockDecision):
+    random_action = md.pick_random_action()
