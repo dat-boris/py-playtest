@@ -73,15 +73,15 @@ class ActionRange(abc.ABC):
     game, you can bet upwards to your bank amount, which could be infinite.
     """
 
-    action_name: ActionInstance
+    action_name: ActionEnum
     valid_range: Any
 
-    def __init__(self, action_name: str, valid_range: Any):
+    def __init__(self, action_name: ActionEnum, valid_range: Any):
         self.action_name = action_name
         self.valid_range = valid_range
 
     @abc.abstractmethod
-    def is_legal(self, x: ActionInstance) -> bool:
+    def is_legal(self, x: ActionInstance, legal_range: Any) -> bool:
         """Check if action is valid"""
         raise NotImplementedError()
 
@@ -93,8 +93,7 @@ class ActionRange(abc.ABC):
     # Int marshalling - for openAI gym interaction
     # ---------
 
-    @classmethod
-    def get_number_of_distinct_value(cls) -> int:
+    def get_number_of_distinct_value(self) -> int:
         """Return the max possible value for the action
 
         Note this is inclusive.
@@ -107,7 +106,7 @@ class ActionRange(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def to_int(self) -> int:
+    def to_int(self, value) -> int:
         raise NotImplementedError()
 
     # ---------
@@ -115,7 +114,7 @@ class ActionRange(abc.ABC):
     # ---------
 
     @abc.abstractmethod
-    def action_from_str(self, action_str: str) -> "ActionInstance":
+    def from_str(self, action_str: str) -> "ActionInstance":
         raise NotImplementedError()
 
     # ---------
@@ -200,8 +199,8 @@ class BaseDecision:
         """
         return spaces.Dict(
             {
-                a.instance_class.key: a.get_action_space_possible()
-                for a in self.decision_ranges.values()
+                action_key.name: action_range.get_action_space_possible()
+                for action_key, action_range in self.decision_ranges.items()
             }
         )
 
@@ -212,9 +211,10 @@ class BaseDecision:
 
         Return: a list of recursive array which can be used for spaces.flatten
         """
+        raise NotImplementedError()
         action_possible_dict = {
-            a.instance_class.key: a.to_numpy_data_null()
-            for a in self.decision_ranges.values()
+            action_key.name: action_range.to_numpy_data()
+            for action_key, action_range in self.decision_ranges.items()
         }
         for a in action_possibles:
             action_key = a.instance_class.key
@@ -226,7 +226,8 @@ class BaseDecision:
     def is_legal(self, action: ActionInstance) -> bool:
         action_enum_matched = action.key
         action_range = self.decision_ranges[action_enum_matched]
-        return action_range.is_legal(action)
+        legal_range = self.legal_action[action_enum_matched]
+        return action_range.is_legal(action, legal_range)
 
     def pick_random_action(
         self, action_ranges: Optional[Sequence[ActionRange]] = None
@@ -239,8 +240,9 @@ class BaseDecision:
 
     def from_str(self, action_input: str) -> ActionInstance:
         """Tokenize input from string into ActionInstance"""
-        for a in self.decision_ranges:
-            return a.instance_class.from_str(action_input)
+        for action_key, action_range in self.decision_ranges.items():
+            if action_input.startswith(action_key.value + "("):
+                return action_range.from_str(action_input)
         raise KeyError(f"Unknown action: {action_input}")
 
     @classmethod
@@ -260,17 +262,20 @@ class BaseDecision:
             current_index = upper_bound
         return action_map
 
-    def to_int(self, action: ActionInstance) -> int:
-        """Converting an action instance to numpy."""
-        int_to_return = 0
-        action_map = self.get_action_map()
-        for action_enum, lower, upper in action_map:
-            assert isinstance(action_enum, enum.Enum)
-            value = action.to_int()
-            final_action_value = lower + value
-            assert lower <= final_action_value <= upper
-            return final_action_value
-        raise KeyError(f"Cannot map action: {action}")
+    # TODO(boris): if this is required?
+    # def to_int(self, action: ActionInstance) -> int:
+    #     """Converting an action instance to numpy."""
+    #     int_to_return = 0
+    #     action_map = self.get_action_map()
+    #     for action_enum, lower, upper in action_map:
+    #         assert isinstance(action_enum, enum.Enum)
+    #         if action_enum == action.key:
+    #             action_range = self.decision_ranges[action_enum]
+    #             value = action_range.to_int(action.value)
+    #             final_action_value = lower + value
+    #             assert lower <= final_action_value <= upper
+    #             return final_action_value
+    #     raise KeyError(f"Cannot map action: {action}")
 
     def from_int(self, input_value: int) -> ActionInstance:
         """Converting from numpy to an action instance."""
@@ -281,13 +286,6 @@ class BaseDecision:
             assert isinstance(action_enum, enum.Enum)
             action_range = self.decision_ranges[action_enum]
             if lower <= input_value < upper:
-                return action_range.instance_class.from_int(input_value - lower)
+                return action_range.from_int(input_value - lower)
         raise KeyError(f"Illegal action input: {input_value}.")
-
-    def action_from_str(self, action_str: str) -> ActionInstance:
-        for action_enum, action_range in self.decision_ranges.items():
-            assert isinstance(action_enum, enum.Enum)
-            if action_str.startswith(action_enum.value + "("):
-                return action_range.action_from_str(action_str)
-        raise KeyError(f"Illegal action input: {action_str}.")
 

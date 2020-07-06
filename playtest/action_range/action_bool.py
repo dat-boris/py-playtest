@@ -15,7 +15,7 @@ class ActionBooleanRange(ActionRange):
         assert isinstance(action_name, ActionEnum)
         super().__init__(action_name, valid_range)
 
-    def is_legal(self, x: ActionInstance) -> bool:
+    def is_legal(self, x: ActionInstance, legal_range) -> bool:
         return x.key == self.action_name
 
     def __get_action(self) -> ActionInstance:
@@ -32,21 +32,22 @@ class ActionBooleanRange(ActionRange):
     def get_number_of_distinct_value(self) -> int:
         return 1
 
-    def to_int(self) -> int:
+    def to_int(self, value: bool) -> int:
+        assert value is True
         return 0
 
-    def from_int(cls, np_value: int) -> "ActionInstance":
+    def from_int(self, np_value: int) -> ActionInstance:
         """Check if value is acceptable"""
         # Yes, this is zero (only 1 value avaliable)
         if np_value == 0:
             return self.__get_action()
-        raise KeyError(f"Unknown value {np_value} for {cls}")
+        raise KeyError(f"Unknown value {np_value} for {self}")
 
     # ---------
     # Str marshalling - for human interaction
     # ---------
 
-    def action_from_str(self, action_str: str) -> ActionInstance:
+    def from_str(self, action_str: str) -> ActionInstance:
         assert action_str.startswith(self.action_name.value + "(")
         return self.__get_action()
 
