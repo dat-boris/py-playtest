@@ -138,7 +138,7 @@ class BaseDecision:
     This class provides ability to:
 
     * Encode all action information in the game
-    * Marshall / Unmarshall data into various format. In particular:
+    * Marshall / Un-marshall data into various format. In particular:
         - int format, for talking to OpenAI
         - str format, required for manual interaction with Human
         - action_space possibility, enumerating what is a current legal
@@ -154,7 +154,7 @@ class BaseDecision:
     """
 
     # Constant
-    action_enum: enum.Enum
+    action_enum: Type[enum.Enum]
     decision_ranges: MutableMapping[ActionEnum, ActionRange]
 
     # Specify default action for non-active player
@@ -170,7 +170,7 @@ class BaseDecision:
     def number_of_actions(self) -> int:
         """Represent the concret space for the action.
 
-        This is used to communicate with OpenAI.gym about the the number of possible ints.
+        This is used to communicate with OpenAI.gym about the the number of possible int.
         Specifying  the number of actions realted.
 
         See `action_space_possible` for explanation.
