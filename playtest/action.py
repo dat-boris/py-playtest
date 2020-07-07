@@ -32,7 +32,7 @@ from .components.core import Component
 ActionEnum = enum.Enum
 
 
-class IllegalActionError(RuntimeError):
+class InvalidActionError(RuntimeError):
     """Represent when we cannot Marshal this into a legal action.
 
     Note you should only throw this when action is illegal.
@@ -44,7 +44,7 @@ class IllegalActionError(RuntimeError):
 
     Action is not legal.
        e.g. you only have Bank of 10 when you bet current action
-       In this case you should throw IllegalActionError.
+       In this case you should throw InvalidActionError.
     """
 
     pass

@@ -37,7 +37,7 @@ class Component(abc.ABC):
     def __eq__(self, x):
         """Return equality if structure is deeply equal"""
         # Numpy supports deep comparison n
-        return (self.to_numpy_data() == x.to_numpy_data()).all()
+        return (self.to_data_for_numpy() == x.to_data_for_numpy()).all()
 
     def __repr__(self):
         """Return a readable string with seperator seperating"""
@@ -132,7 +132,7 @@ class Component(abc.ABC):
                 data_value.append(sv_type(sv))
         return cls(data_value)
 
-    def to_numpy_data(self):
+    def to_flattened_numpy_data(self, player_id: int):
         return spaces.flatten(self.get_observation_space(), self.to_data_for_numpy())
 
     @classmethod

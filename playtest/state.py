@@ -100,8 +100,12 @@ class SubState(Component):
                 # e.g. attr_va.to_data()
                 to_data_func = getattr(attr_val, to_data_func_name)
                 val_dict[name] = to_data_func()
+            elif isinstance(attr_val, int):
+                val_dict[name] = attr_val
             else:
-                raise RuntimeError(f"Received non component data in {name}")
+                raise RuntimeError(
+                    f"Received non component or int in {name}: {attr_val}"
+                )
         return val_dict
 
     @classmethod

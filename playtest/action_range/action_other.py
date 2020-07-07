@@ -16,7 +16,7 @@ class ActionSingleValue(ActionInstance[S]):
         assert self.maximum_value is not None, "{self.__class__} must set max_value"
         assert self.minimum_value is not None, "{self.__class__} must set min_value"
         if not self.minimum_value <= value <= self.maximum_value:
-            raise IllegalActionError(
+            raise InvalidActionError(
                 f"Value {value} not within bound [{self.minimum_value}, {self.maximum_value})"
             )
 
@@ -32,7 +32,7 @@ class ActionSingleValue(ActionInstance[S]):
         matches = re.match(f"{action_key}[(](\\d+)[)]", action_str)
         if matches:
             return cls(int(matches.group(1)))
-        raise IllegalActionError(f"Unknown action: {action_str}")
+        raise InvalidActionError(f"Unknown action: {action_str}")
 
     @classmethod
     def get_number_of_distinct_value(cls):
@@ -128,7 +128,7 @@ class ActionValueInSet(ActionInstance[S], Generic[S, T]):
 
     def __init__(self, value):
         if value not in self.value_set_mapping:
-            raise IllegalActionError(f"{value} is not one of {self.value_set_mapping}")
+            raise InvalidActionError(f"{value} is not one of {self.value_set_mapping}")
         self.value = value
 
     def __repr__(self):
@@ -157,7 +157,7 @@ class ActionValueInSet(ActionInstance[S], Generic[S, T]):
             if cls.coerce_int:
                 instance_value = int(instance_value)  # type: ignore
             return cls(instance_value)
-        raise IllegalActionError(f"Unknown action: {action_str}")
+        raise InvalidActionError(f"Unknown action: {action_str}")
 
     @classmethod
     def from_int(cls, np_value: int) -> ActionInstance:

@@ -1,5 +1,5 @@
 import logging
-from typing import Tuple, Generator, Optional, List, Dict, Sequence, Type
+from typing import Tuple, Generator, Optional, List, Dict, Sequence, Type, Any
 from pprint import pprint
 import warnings
 
@@ -15,8 +15,13 @@ from rl.core import Agent
 
 from .game import Game
 from .state import FullState
-from .action import ActionFactory, ActionRange, ActionInstance, InvalidActionError
 from .constant import Reward
+
+
+# TODO: mocking out variables now
+ActionFactory = Any
+ActionRange = Any
+ActionInstance = Any
 
 
 class GameWrapperEnvironment(gym.Env):
