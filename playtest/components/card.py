@@ -184,7 +184,7 @@ class Deck(Component, Generic[C]):
     def from_data(cls, data):
         cards = []
         for card_data in data:
-            cards.append(cls.generic_card(card_data))
+            cards.append(cls.generic_card.from_data(card_data))
         return cls(cards)
 
     def to_data_for_numpy(self):

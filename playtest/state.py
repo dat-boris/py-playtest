@@ -112,6 +112,10 @@ class SubState(Component):
     def from_data(cls, data):
         instance = cls()
         for name, attr_value in data.items():
+            # We ignore players on state since this will handeld separately
+            # by subclass
+            if name == "players":
+                continue
             data_class = cls.__annotations__[name]
             assert name in data, "{} does not present in data.".format(name)
             if inspect.isclass(data_class) and issubclass(data_class, Component):
@@ -122,10 +126,6 @@ class SubState(Component):
                 setattr(instance, name, attr_instance)
             elif data_class is int:
                 setattr(instance, name, attr_value)
-            elif name == "players":
-                # We ignore players on state since this will handeld separately
-                # by subclass
-                pass
             else:
                 raise RuntimeError(f"Unknown attribute instance: {name}, {attr_value}")
 

@@ -41,7 +41,7 @@ def test_resources():
     assert r2 == r
 
     assert isinstance(r.get_observation_space(), spaces.Box)
-    assert (r.to_numpy_data() == np.array([2, 3])).all()
+    assert (r.to_data_for_numpy() == np.array([2, 3])).all()
 
     # TODO (boris): Not quiet human friendly!
     assert repr(r) == "FooBarResource(2,3)", "Simple string presentation"

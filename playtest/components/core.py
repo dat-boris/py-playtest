@@ -38,7 +38,11 @@ class Component(abc.ABC):
         """Return equality if structure is deeply equal"""
         # Numpy supports deep comparison n
         if issubclass(x.__class__, Component):
-            return (self.to_data_for_numpy() == x.to_data_for_numpy()).all()
+            compare_result = self.to_data_for_numpy() == x.to_data_for_numpy()
+            # This can be a bool, or numpy compare result
+            if type(compare_result) is bool:
+                return compare_result
+            return compare_result.all()
         # Comparing based on value
         return self.value == x
 
@@ -132,8 +136,13 @@ class Component(abc.ABC):
             sv_type = cls_value_type[i]
             if issubclass(sv_type, Component):
                 data_value.append(sv_type.from_data(sv))
-            else:
+            elif issubclass(sv_type, enum.IntEnum):
                 data_value.append(sv_type(sv))
+            elif sv_type is int:
+                assert type(sv) is int
+                data_value.append(sv)
+            else:
+                raise RuntimeError(f"Cannot map correct type {sv_type} for {sv}")
         return cls(data_value)
 
     def to_flattened_numpy_data(self, player_id: int):

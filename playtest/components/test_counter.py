@@ -21,7 +21,7 @@ def test_counter():
 
     assert isinstance(c.get_observation_space(), spaces.Box)
     # Note the box conversion convert this to an array
-    assert c.to_numpy_data() == np.array([3])
+    assert c.to_data_for_numpy() == np.array([3])
 
     # Comparison depends on numpy
     assert new_obj == c, "Comparison works with numpy"
