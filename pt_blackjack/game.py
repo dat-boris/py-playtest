@@ -212,7 +212,10 @@ def reset_round(s: State, action=None) -> TypeReturnState:
 
 
 def find_final_winner(s: State, action=None) -> TypeReturnState:
-    all_banks = [s.get_player_state(p.id).bank.amount for p in s.players]
+    all_banks = [
+        s.get_player_state(player_id).bank.amount
+        for player_id, p in enumerate(s.players)
+    ]
     winner = None
     winner_amount = -0xFFFF
     for i, v in enumerate(all_banks):

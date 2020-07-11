@@ -187,8 +187,9 @@ def test_evaluate_round_end():
     assert s.players[0].bet == [0]
     assert s.players[1].bet == [0]
     assert s.players[1].bank == [15]
+
+    assert len(s.discarded) == 4, "4 cards discarded"
     # Go back to player 0 and place bet.
-    # TODO: reset hand
     assert next_state == gm.GameState.place_bet
     action_space_possible = decision.action_range_to_numpy()
     assert action_space_possible == {
@@ -199,64 +200,34 @@ def test_evaluate_round_end():
     }
 
 
-@pytest.mark.xfail
-def test_round():
-    s: State = game.state
-    announcer = game.get_announcer()
-
-    game_gen = game.deal_round(game.players[0])
-    player_id, possible_actions, _ = next(game_gen)
-
-    assert player_id == game.players[0].id
-    assert possible_actions == [ActionBetRange(s, player_id)]
-    assert (
-        len(s.get_player_state(player_id).hand) == 2
-    ), "Player should start with two cards"
-
-    player_id, possible_actions, _ = game_gen.send(ActionBet(2))
-    assert player_id == 0
-    assert possible_actions == [
-        ActionHitRange(s, player_id),
-        ActionSkipRange(s, player_id),
-    ]
-    player_state: PlayerState = s.get_player_state(player_id)
-    assert player_state.bet.amount == 2
-    assert player_state.bank.amount == 8
-    # TODO: implement announcer
-    # assert any(m.contains("hit or pass") for m in announcer.messages)
-
-    announcer.clear()
-    player_id, possible_actions, _ = game_gen.send(ACTION_HIT)
-    assert player_id == 0
-
-    # TODO: implement announcer
-    # assert any(m.contains("hit or pass") for m in announcer.messages)
-    assert (
-        len(s.get_player_state(player_id).hand) == 3
-    ), "Player should receive extra card"
-
-    announcer.clear()
-    with pytest.raises(StopIteration):
-        game_gen.send(ACTION_SKIP)
-        # player, possible_actions = next(game_gen)
-        # assert player == s.players[1], "Should forward to next player"
-
-    # reset hand should reset all player's hand
-    game.reset_hand()
-    for p in game.players:
-        assert len(s.get_player_state(p.id).hand) == 0
-    assert len(s.discarded) > 0
-
-
-@pytest.mark.xfail
 def test_find_winner():
-    s: State = game.state
-    winner = game.find_winner()
-    assert winner is None
+    s = State.from_data(
+        {
+            "current_player": 1,
+            "hit_rounds": 0,
+            # Last round
+            "number_of_rounds": 3,
+            "deck": [
+                [8, 2],
+                [6, 1],
+                [11, 3],
+                # ... snipped extra cards
+            ],
+            "discarded": [],
+            "players": [
+                # 5 points
+                {"bank": [7], "bet": [3], "hand": [[2, 2], [3, 2]]},
+                # 6 points - winner - should gets 5 gold
+                {"bank": [10], "bet": [2], "hand": [[2, 2], [4, 2]]},
+            ],
+        }
+    )
+    assert s.current_player == 1
 
-    # Make player 0 the loser!
-    s.get_player_state(0).bank.value = [0]
+    # Act - make a hit on the action
+    skip_action = ActionInstance(acn.ActionName.SKIP, True)
+    returned_state, decision, next_state = gm.decide_hit_miss(s, action=skip_action)
 
     # Now player 1 win!
-    winner = game.find_winner()
-    assert winner == 1
+    assert decision is None
+    assert next_state == gm.GameState.end
