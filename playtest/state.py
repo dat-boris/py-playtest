@@ -111,14 +111,24 @@ class SubState(Component):
     @classmethod
     def from_data(cls, data):
         instance = cls()
-        for name, data_class in cls.__annotations__.items():
+        for name, attr_value in data.items():
+            data_class = cls.__annotations__[name]
             assert name in data, "{} does not present in data.".format(name)
             if inspect.isclass(data_class) and issubclass(data_class, Component):
-                attr_instance = data_class.from_data(data[name])
+                attr_instance = data_class.from_data(attr_value)
                 assert isinstance(
                     attr_instance, Component
                 ), f"{data_class} did not return component"
                 setattr(instance, name, attr_instance)
+            elif data_class is int:
+                setattr(instance, name, attr_value)
+            elif name == "players":
+                # We ignore players on state since this will handeld separately
+                # by subclass
+                pass
+            else:
+                raise RuntimeError(f"Unknown attribute instance: {name}, {attr_value}")
+
         return instance
 
 
@@ -134,7 +144,7 @@ class FullState(SubState, Generic[S]):
 
     player_state_class: Type[S]
     players: Sequence[S]
-    current_player_id: int
+    current_player: int
 
     def __init__(self, param=None):
         """Initialize the players
@@ -151,8 +161,8 @@ class FullState(SubState, Generic[S]):
         return len(self.players)
 
     def next_player(self) -> int:
-        self.current_player_id = (self.current_player_id + 1) % self.number_of_players
-        return self.current_player_id
+        self.current_player = (self.current_player + 1) % self.number_of_players
+        return self.current_player
 
     def reset(self):
         super().reset()

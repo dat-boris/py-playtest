@@ -1,4 +1,4 @@
-from typing import List, Tuple, Generator, Optional, Sequence, Type
+from typing import List, Tuple, Generator, Optional, Sequence, Type, Dict
 from dataclasses import dataclass
 import logging
 import enum
@@ -30,9 +30,14 @@ class GameState(enum.Enum):
     start = "start"
     place_bet = "place_bet"
     decide_hit_pass = "decide_hit_pass"
+    end_of_round = "end_of_round"
+    end = "end"
 
 
-def start(s: State, action=None) -> Tuple[State, acn.ActionDecision, GameState]:
+TypeReturnState = Tuple[State, Optional[acn.ActionDecision], GameState]
+
+
+def start(s: State, action=None) -> TypeReturnState:
     logging.info("Start of next round!")
     current_player = s.current_player
     return deal_round(s)
@@ -47,7 +52,7 @@ def start(s: State, action=None) -> Tuple[State, acn.ActionDecision, GameState]:
     # TODO: how to reward the player?
 
 
-def deal_round(s: State, action=None) -> Tuple[State, acn.ActionDecision, GameState]:
+def deal_round(s: State, action=None) -> TypeReturnState:
     current_player = s.current_player
     logging.info(f"Player {current_player} - it is your turn!")
 
@@ -61,11 +66,11 @@ def deal_round(s: State, action=None) -> Tuple[State, acn.ActionDecision, GameSt
     return (
         s,
         acn.ActionDecision({acn.ActionName.BET: (Param.min_bet_per_round, bank_value)}),
-        GameState.decide_hit_pass,
+        GameState.place_bet,
     )
 
 
-def handle_bet(s: State, action: ActionInstance):
+def handle_bet(s: State, action: ActionInstance) -> TypeReturnState:
     assert action.key == acn.ActionName.BET
     bet_value = action.value
 
@@ -75,88 +80,145 @@ def handle_bet(s: State, action: ActionInstance):
     logging.info(f"Player {current_player} bet: {bet_value} coin")
     player_state.bet.take_from(player_state.bank, value=bet_value)
 
+    logging.info("Do you want to hit or pass?")
     return (
         s,
+        # TODO: this action is really tied to the state (instead of others)
         acn.ActionDecision({acn.ActionName.HIT: True, acn.ActionName.SKIP: True,}),
         GameState.decide_hit_pass,
     )
 
 
-def decide_hit_miss(s: State, action: ActionInstance):
-    hit_rounds = 0
-    self.a.ask("Do you want to hit or pass?")
-    while action != ACTION_SKIP and hit_rounds <= self.param.max_hits:
-        # Note that this is class of action, while returned would be an instance
-        accepted_action = [
-            ActionHitRange(self.state, p.id),
-            ActionSkipRange(self.state, p.id),
-        ]
-        action = yield from self.get_player_action(p.id, accepted_action)
-        self.a.say(f"Player {p.id} round {hit_rounds}: {action}")
-        assert any(
-            [action_range.is_valid(action) for action_range in accepted_action]
-        ), f"Invalid action: {action}"
-        if action == ACTION_HIT:
-            self.s.deck.deal(player_state.hand, 1)
-            # TODO: calculate reward
-            self.set_last_player_reward(Reward.HITTED)
+def decide_hit_miss(s: State, action: ActionInstance) -> TypeReturnState:
+    assert action.key in {acn.ActionName.HIT, acn.ActionName.SKIP}
 
-        hit_rounds += 1
+    current_player = s.current_player
+    player_state: PlayerState = s.get_player_state(current_player)
+    hit_rounds = s.hit_rounds
 
-    # TODO: calculate reward
-    self.set_last_player_reward(Reward.SKIPPED)
-    self.a.say("Okay pass - on to next player!")
+    logging.info(f"Player {current_player} round {hit_rounds}: {action}")
+
+    if action.key == acn.ActionName.HIT:
+        s.deck.deal(player_state.hand, 1)
+        # TODO: calculate reward
+        # self.set_last_player_reward(Reward.HITTED)
+        s.hit_rounds += 1
+        return (
+            s,
+            acn.ActionDecision({acn.ActionName.HIT: True, acn.ActionName.SKIP: True,}),
+            GameState.decide_hit_pass,
+        )
+    elif action.key == acn.ActionName.SKIP:
+        logging.info("Okay pass - on to next player!")
+        # TODO: calculate reward
+        # self.set_last_player_reward(Reward.SKIPPED)
+        s.hit_rounds = 0
+        s.next_player()
+        next_player_bank = s.players[s.current_player].bank
+
+        # do we have more players to play?
+        if s.current_player == 0:
+            # End of round - check for winner
+            return check_winner(s)
+
+        # Next player bet
+        # TODO: really should be just going to state?
+        return (
+            s,
+            acn.ActionDecision(
+                {
+                    acn.ActionName.BET: (
+                        Param.min_bet_per_round,
+                        next_player_bank.value[0],
+                    )
+                }
+            ),
+            GameState.decide_hit_pass,
+        )
+
+    raise RuntimeError(f"Unknown action {action}")
 
 
-def find_winner(self) -> Optional[int]:
-    all_banks = [self.s.get_player_state(p.id).bank.amount for p in self.players]
+def check_winner(s: State, action=None) -> TypeReturnState:
+    current_player = s.current_player
+
+    # Now check for winner
+    all_score: Dict[int, int] = {}
+    losers: List[int] = []
+    winner: Optional[int] = None
+    p: PlayerState
+    for player_id, p in enumerate(s.players):
+        ps = s.get_player_state(player_id)
+        score_in_hand = sum([c.number for c in ps.hand])
+        if score_in_hand > Param.max_score:
+            logging.info("Player {} is busted! ({})".format(player_id, score_in_hand))
+            # losers.append(p)
+        else:
+            logging.info("Player {} has {} points!".format(player_id, score_in_hand))
+            all_score[player_id] = score_in_hand
+
+    if not all_score:
+        logging.info("All busted, no winner!")
+        # No winner!
+        # TODO: recording the winner
+    else:
+        sorted_players: List[int] = sorted(
+            all_score.keys(), key=lambda v: all_score[v], reverse=True
+        )
+
+        # TODO: what happen if equal score?
+        winner = sorted_players[0]
+        logging.info("Player {} is the winner!".format(winner))
+        losers.extend(sorted_players[1:])
+
+        winner_pot = s.get_player_state(winner).bank
+        total_bets = 0
+        for player_id, p in enumerate(s.players):
+            total_bets += s.get_player_state(player_id).bet.amount
+            winner_pot.take_from(s.get_player_state(player_id).bet)
+        logging.info("Player {} gains {} gold!".format(player_id, total_bets))
+
+    return end_of_round_next_round_check(s)
+
+
+def end_of_round_next_round_check(s: State, action=None) -> TypeReturnState:
+    current_player = s.current_player
+
+    all_banks = [
+        s.get_player_state(player_id).bank.amount
+        for player_id, p in enumerate(s.players)
+    ]
     has_broke = any([b <= 1 for b in all_banks])
-    if not has_broke:
-        return None
+    if has_broke:
+        return find_final_winner(s)
 
+    if current_player == 0:
+        s.number_of_rounds += 1
+        if s.number_of_rounds >= Param.number_of_rounds:
+            logging.info("End of game - {s.number_of_rounds}")
+            return find_final_winner(s)
+
+    # Go back into betting
+    return reset_round(s)
+
+
+def reset_round(s: State, action=None) -> TypeReturnState:
+    p: PlayerState
+    for player_id, p in enumerate(s.players):
+        # reset all hands
+        p.hand.deal(s.discarded, all=True)
+    s.hit_rounds = 0
+    return deal_round(s)
+
+
+def find_final_winner(s: State, action=None) -> TypeReturnState:
+    all_banks = [s.get_player_state(p.id).bank.amount for p in s.players]
     winner = None
     winner_amount = -0xFFFF
     for i, v in enumerate(all_banks):
         if v > winner_amount:
             winner = i
-    return winner
 
+    # TODO: setting up winner control
+    return (s, None, GameState.end)
 
-def reset_hand(self):
-    for p in self.players:
-        player_state = self.s.get_player_state(p.id)
-        player_state.hand.deal(self.state.discarded, all=True)
-
-
-def determine_winner(self):
-    all_score = {}
-    losers = []
-    winner = None
-    for p in self.players:
-        ps = self.s.get_player_state(p.id)
-        score = sum([c.number for c in ps.hand])
-        if score > self.param.max_score:
-            self.a.say("Player {} is busted! ({})".format(p.id, score))
-            losers.append(p)
-        else:
-            self.a.say("Player {} has {} points!".format(p.id, score))
-            all_score[p] = score
-
-    if not all_score:
-        self.a.say("All busted, no winner!")
-        return
-    else:
-        sorted_players = sorted(
-            all_score.keys(), key=lambda v: all_score[v], reverse=True
-        )
-        # TODO: what happen if equal score?
-        winner = sorted_players[0]
-        self.a.say("Player {} is the winner!".format(winner.id))
-        losers.extend(sorted_players[1:])
-
-    winner_pot = self.s.get_player_state(winner.id).bank
-    total_bets = 0
-    for p in self.players:
-        total_bets += self.s.get_player_state(p.id).bet.amount
-        winner_pot.take_from(self.s.get_player_state(p.id).bet)
-    self.a.say("Player {} gains {} gold!".format(p.id, total_bets))

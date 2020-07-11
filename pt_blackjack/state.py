@@ -29,6 +29,7 @@ class State(FullState):
         "discarded": Visibility.ALL,
         "current_player": Visibility.ALL,
         "number_of_rounds": Visibility.ALL,
+        "hit_rounds": Visibility.ALL,
     }
 
     player_state_class = PlayerState
@@ -38,6 +39,7 @@ class State(FullState):
     players: List[PlayerState]
     current_player: int
     number_of_rounds: int
+    hit_rounds: int
 
     def __init__(self, param=None):
         super().__init__(param=param)
@@ -45,8 +47,4 @@ class State(FullState):
         self.discarded = BasicDeck([])
         self.current_player = 0
         self.number_of_rounds = 0
-        self.number_of_rounds = 0
-
-    def get_player_state(self, player_id: int) -> PlayerState:
-        assert isinstance(player_id, int)
-        return self.players[player_id]
+        self.hit_rounds = 0

@@ -22,7 +22,7 @@ def test_start():
     # pprint(s.to_data())
 
     # Assert - check next game state and what it should be
-    assert next_state == gm.GameState.decide_hit_pass
+    assert next_state == gm.GameState.place_bet
 
     # Assert - check that state makes sense
     assert len(s.players[0].hand) == 2, "First hand is dealed"
@@ -41,6 +41,7 @@ def test_to_next_bet():
     s = State.from_data(
         {
             "current_player": 0,
+            "hit_rounds": 0,
             "deck": [
                 [8, 2],
                 [6, 1],
@@ -76,6 +77,125 @@ def test_to_next_bet():
         acn.ActionName.SKIP.name: [1],
         acn.ActionName.HIT.name: [1],
         acn.ActionName.BET.name: [0, 0],
+    }
+
+
+def test_hit():
+    s = State.from_data(
+        {
+            "current_player": 0,
+            "hit_rounds": 0,
+            "deck": [
+                [8, 2],
+                [6, 1],
+                [11, 3],
+                # ... snipped extra cards
+            ],
+            "discarded": [],
+            "number_of_rounds": 0,
+            "players": [
+                {"bank": [7], "bet": [3], "hand": [[2, 2], [3, 2]]},
+                {"bank": [10], "bet": [0], "hand": []},
+            ],
+        }
+    )
+    assert len(s.players[0].hand) == 2
+
+    # Act - make a hit on the action
+    hit_action = ActionInstance(acn.ActionName.HIT, True)
+    returned_state, decision, next_state = gm.decide_hit_miss(s, action=hit_action)
+
+    # Assert, ensure that we get another card, and same action
+    assert len(s.players[0].hand) == 3, "Player one get another card"
+
+    action_space_possible = decision.action_range_to_numpy()
+    assert action_space_possible == {
+        acn.ActionName.SKIP.name: [1],
+        acn.ActionName.HIT.name: [1],
+        acn.ActionName.BET.name: [0, 0],
+    }
+
+
+def test_skip_first_player():
+    s = State.from_data(
+        {
+            "current_player": 0,
+            "hit_rounds": 0,
+            "deck": [
+                [8, 2],
+                [6, 1],
+                [11, 3],
+                # ... snipped extra cards
+            ],
+            "discarded": [],
+            "number_of_rounds": 0,
+            "players": [
+                {"bank": [7], "bet": [3], "hand": [[2, 2], [3, 2]]},
+                {"bank": [10], "bet": [0], "hand": []},
+            ],
+        }
+    )
+    assert len(s.players[0].hand) == 2
+    assert s.current_player == 0
+
+    # Act - make a hit on the action
+    skip_action = ActionInstance(acn.ActionName.SKIP, True)
+    returned_state, decision, next_state = gm.decide_hit_miss(s, action=skip_action)
+
+    # Assert, ensure that we get another card, and same action
+    assert len(s.players[0].hand) == 2, "Player one get another card"
+    # next player
+    assert s.current_player == 1
+    action_space_possible = decision.action_range_to_numpy()
+    assert action_space_possible == {
+        acn.ActionName.SKIP.name: [0],
+        acn.ActionName.HIT.name: [0],
+        acn.ActionName.BET.name: [1, 10],
+    }
+
+
+def test_evaluate_round_end():
+    s = State.from_data(
+        {
+            "current_player": 1,
+            "hit_rounds": 0,
+            "deck": [
+                [8, 2],
+                [6, 1],
+                [11, 3],
+                # ... snipped extra cards
+            ],
+            "discarded": [],
+            "number_of_rounds": 0,
+            "players": [
+                # 5 points
+                {"bank": [7], "bet": [3], "hand": [[2, 2], [3, 2]]},
+                # 6 points - winner - should gets 5 gold
+                {"bank": [10], "bet": [2], "hand": [[2, 2], [4, 2]]},
+            ],
+        }
+    )
+    assert s.current_player == 1
+    assert s.players[1].bank == [10]
+
+    # Act - make a hit on the action
+    skip_action = ActionInstance(acn.ActionName.SKIP, True)
+    returned_state, decision, next_state = gm.decide_hit_miss(s, action=skip_action)
+
+    # Assert, ensure that we get another card, and same action
+    assert s.current_player == 0
+    assert s.players[0].bet == [0]
+    assert s.players[1].bet == [0]
+    assert s.players[1].bank == [15]
+    # Go back to player 0 and place bet.
+    # TODO: reset hand
+    assert next_state == gm.GameState.place_bet
+    action_space_possible = decision.action_range_to_numpy()
+    assert action_space_possible == {
+        acn.ActionName.SKIP.name: [0],
+        acn.ActionName.HIT.name: [0],
+        # Note now player 1 have less money
+        acn.ActionName.BET.name: [1, 7],
     }
 
 
