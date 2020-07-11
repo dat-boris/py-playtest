@@ -11,6 +11,7 @@ class Param(ut.Param):
     number_of_rounds: int = 3
     max_hits: int = 3
     max_bank: int = 20
+    min_bet_per_round: int = 1
 
 
 class Reward(ut.Reward):

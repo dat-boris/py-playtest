@@ -1,6 +1,8 @@
 from pprint import pprint
 import pytest
 
+from playtest.action import ActionInstance
+
 from .constant import Param
 from .state import State, PlayerState
 import pt_blackjack.game as gm
@@ -11,26 +13,70 @@ NUMBER_OF_PLAYERS = 2
 
 
 def test_start():
+    # Arrange
     s = State(Param(number_of_players=NUMBER_OF_PLAYERS))
     assert len(s.players[0].hand) == 0, "First hand is empty"
 
+    # Act
     returned_state, decision, next_state = gm.start(s)
+    # pprint(s.to_data())
 
+    # Assert - check next game state and what it should be
     assert next_state == gm.GameState.decide_hit_pass
-    # TODO: ensure we can do comparison
-    # assert s == returned_state
 
+    # Assert - check that state makes sense
     assert len(s.players[0].hand) == 2, "First hand is dealed"
     assert len(s.players[1].hand) == 0, "Second hand is not dealed"
-    pprint(s.to_data())
+
+    # Assert - ensure decision is within range
+    action_space_possible = decision.action_range_to_numpy()
+    assert action_space_possible == {
+        acn.ActionName.SKIP.name: [0],
+        acn.ActionName.HIT.name: [0],
+        acn.ActionName.BET.name: [1, 10],
+    }
 
 
-@pytest.mark.xfail
 def test_to_next_bet():
-    # ability to forward the generator
-    player_id, possible_actions, _ = next(game_gen)
-    assert player_id == game.players[0].id
-    assert possible_actions == [ActionBetRange(s, player_id)]
+    s = State.from_data(
+        {
+            "current_player": 0,
+            "deck": [
+                [8, 2],
+                [6, 1],
+                [11, 3],
+                [10, 4],
+                [12, 4],
+                [7, 3],
+                [5, 1],
+                [6, 2],
+                [9, 2],
+                # ... snipped extra cards
+            ],
+            "discarded": [],
+            "number_of_rounds": 0,
+            "players": [
+                {"bank": [10], "bet": [0], "hand": [[2, 2], [3, 2]]},
+                {"bank": [10], "bet": [0], "hand": []},
+            ],
+        }
+    )
+
+    # Act - make a $3 bet
+    bet_action = ActionInstance(acn.ActionName.BET, 3)
+    returned_state, decision, next_state = gm.handle_bet(s, action=bet_action)
+
+    # Assert - check the bank, and hit or miss action range
+    assert s.players[0].bet == [3], "Correct bet was made"
+    assert s.players[0].bank == [7], "Money taken away from bank"
+    assert s.players[1].bank == [10]
+
+    action_space_possible = decision.action_range_to_numpy()
+    assert action_space_possible == {
+        acn.ActionName.SKIP.name: [1],
+        acn.ActionName.HIT.name: [1],
+        acn.ActionName.BET.name: [0, 0],
+    }
 
 
 @pytest.mark.xfail

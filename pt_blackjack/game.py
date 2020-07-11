@@ -56,28 +56,33 @@ def deal_round(s: State, action=None) -> Tuple[State, acn.ActionDecision, GameSt
     s.deck.deal(player_state.hand, 2)
 
     logging.info("How much you want to bet?")
+    bank_value = player_state.bank.value[0]
 
     return (
         s,
-        acn.ActionDecision({acn.ActionName.BET: player_state.bank.value}),
+        acn.ActionDecision({acn.ActionName.BET: (Param.min_bet_per_round, bank_value)}),
         GameState.decide_hit_pass,
     )
 
 
-def handle_bet(self, state: State):
-    assert isinstance(bet, ActionBet)
-    assert accepted_action[0].is_valid(
-        bet
-    ), f"Invalid bet made: {bet} based on {accepted_action[0]}"
-    bet_value = bet.value
-    self.a.say(f"Player {p.id} bet: {bet_value} coin")
+def handle_bet(s: State, action: ActionInstance):
+    assert action.key == acn.ActionName.BET
+    bet_value = action.value
+
+    current_player = s.current_player
+    player_state: PlayerState = s.get_player_state(current_player)
+
+    logging.info(f"Player {current_player} bet: {bet_value} coin")
     player_state.bet.take_from(player_state.bank, value=bet_value)
-    action = None
-    # TODO: calculate reward
-    self.set_last_player_reward(Reward.BETTED)
+
+    return (
+        s,
+        acn.ActionDecision({acn.ActionName.HIT: True, acn.ActionName.SKIP: True,}),
+        GameState.decide_hit_pass,
+    )
 
 
-def decide_hit_miss():
+def decide_hit_miss(s: State, action: ActionInstance):
     hit_rounds = 0
     self.a.ask("Do you want to hit or pass?")
     while action != ACTION_SKIP and hit_rounds <= self.param.max_hits:

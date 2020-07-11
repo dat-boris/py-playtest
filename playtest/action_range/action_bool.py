@@ -58,7 +58,13 @@ class ActionBooleanRange(ActionRange):
     def get_action_space_possible(self):
         return spaces.MultiBinary(1)
 
-    def to_numpy_data(self) -> np.ndarray:
+    def to_numpy_data(self, legal_range) -> np.ndarray:
         """Return action space possible in numpy array
         """
-        return np.array([1])
+        assert legal_range is True
+        return [1]
+
+    def to_numpy_empty_action(self) -> np.ndarray:
+        """Return null data set for ActionRange
+        """
+        return [0]

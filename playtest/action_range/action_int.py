@@ -58,13 +58,22 @@ class ActionIntInSet(ActionRange):
     def get_action_space_possible(self):
         return spaces.MultiBinary(self.get_number_of_distinct_value())
 
-    def to_numpy_data(self) -> np.ndarray:
+    def to_numpy_data(self, legal_range) -> np.ndarray:
         """Return action space possible in numpy array
         """
         array_value = [0] * self.get_number_of_distinct_value()
-        for v in list(self.valid_range):
+        assert (
+            len(legal_range) == array_value
+        ), "legal_range must be same as number of distinct value"
+        for v in list(legal_range):
             array_value[v] = 1
-        return np.array(array_value)
+        return array_value
+
+    def to_numpy_empty_action(self) -> np.ndarray:
+        """Return null data set for ActionRange
+        """
+        array_value = [0] * self.get_number_of_distinct_value()
+        return array_value
 
 
 class ActionIntInRange(ActionRange):
@@ -125,8 +134,13 @@ class ActionIntInRange(ActionRange):
         lower_bound, upper_bound = self.valid_range
         return spaces.Box(low=lower_bound, high=upper_bound, shape=(2,), dtype=np.int8,)
 
-    def to_numpy_data(self) -> np.ndarray:
+    def to_numpy_data(self, legal_range) -> np.ndarray:
         """Return action space possible in numpy array
         """
-        lower_bound, upper_bound = self.valid_range
-        return np.array([lower_bound, upper_bound])
+        lower_bound, upper_bound = legal_range
+        return [lower_bound, upper_bound]
+
+    def to_numpy_empty_action(self) -> np.ndarray:
+        """Return null data set for ActionRange
+        """
+        return [0, 0]

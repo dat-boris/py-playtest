@@ -37,7 +37,10 @@ class Component(abc.ABC):
     def __eq__(self, x):
         """Return equality if structure is deeply equal"""
         # Numpy supports deep comparison n
-        return (self.to_data_for_numpy() == x.to_data_for_numpy()).all()
+        if issubclass(x.__class__, Component):
+            return (self.to_data_for_numpy() == x.to_data_for_numpy()).all()
+        # Comparing based on value
+        return self.value == x
 
     def __repr__(self):
         """Return a readable string with seperator seperating"""
@@ -95,18 +98,19 @@ class Component(abc.ABC):
         for i, sv in enumerate(self.value):
             sv_type = cls_value_type[i]
             coerced_sv = None
+
+            assert isinstance(
+                sv, sv_type
+            ), f"Expected value '{sv}' should be of type '{sv_type}'"
+
             if issubclass(sv_type, Component):
                 coerced_sv = sv.to_data()
             elif issubclass(sv_type, enum.IntEnum):
-                coerced_sv = sv_type(sv)
-            else:
-                assert (
-                    sv_type is int
-                ), f"Expected value '{sv}' is not of type '{sv_type}'"
+                coerced_sv = sv.value
+            elif sv_type is int:
                 coerced_sv = int(sv)
-            assert isinstance(
-                coerced_sv, sv_type
-            ), f"Expected value '{coerced_sv}' is not of type '{sv_type}'"
+            else:
+                raise TypeError(f"Expected value '{sv}' is not of type '{sv_type}'")
             data_value.append(coerced_sv)
         return data_value
 

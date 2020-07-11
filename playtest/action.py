@@ -126,10 +126,16 @@ class ActionRange(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def to_numpy_data(self) -> np.ndarray:
+    def to_numpy_data(self, legal_range) -> np.ndarray:
         """Return action space possible in numpy array
         """
-        raise NotImplementedError(f"{self.__class__} is not implemented")
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def to_numpy_empty_action(self) -> np.ndarray:
+        """Return null data set for ActionRange
+        """
+        raise NotImplementedError()
 
 
 class BaseDecision:
@@ -204,22 +210,23 @@ class BaseDecision:
             }
         )
 
-    def action_range_to_numpy(
-        self, action_possibles: Sequence[ActionRange]
-    ) -> Dict[str, np.ndarray]:
-        """Based on the list of Action Range, return a list of action possible
+    def action_range_to_numpy(self) -> Dict[str, np.ndarray]:
+        """Based on what action is legal, return a numpy space is avaliable.
 
-        Return: a list of recursive array which can be used for spaces.flatten
+        Return: a dict of recursive array which can be used for spaces.flatten
         """
-        raise NotImplementedError()
-        action_possible_dict = {
-            action_key.name: action_range.to_numpy_data()
-            for action_key, action_range in self.decision_ranges.items()
-        }
-        for a in action_possibles:
-            action_key = a.instance_class.key
-            assert action_key in action_possible_dict, "Unknown action dict!"
-            action_possible_dict[action_key] = a.to_numpy_data()
+        action_possible_dict = {}
+
+        for action_key, action_range in self.decision_ranges.items():
+            if action_key in self.legal_action:
+                legal_value = self.legal_action[action_key]
+                action_possible_dict[action_key.name] = action_range.to_numpy_data(
+                    legal_value
+                )
+            else:
+                action_possible_dict[
+                    action_key.name
+                ] = action_range.to_numpy_empty_action()
 
         return action_possible_dict
 
