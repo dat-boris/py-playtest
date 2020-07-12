@@ -37,7 +37,14 @@ class Component(abc.ABC):
     def __eq__(self, x):
         """Return equality if structure is deeply equal"""
         # Numpy supports deep comparison n
-        return (self.to_numpy_data() == x.to_numpy_data()).all()
+        if issubclass(x.__class__, Component):
+            compare_result = self.to_data_for_numpy() == x.to_data_for_numpy()
+            # This can be a bool, or numpy compare result
+            if type(compare_result) is bool:
+                return compare_result
+            return compare_result.all()
+        # Comparing based on value
+        return self.value == x
 
     def __repr__(self):
         """Return a readable string with seperator seperating"""
@@ -87,7 +94,29 @@ class Component(abc.ABC):
         """Return a list of integer to be represented
         as data
         """
-        return [int(v) for v in self.value]
+        cls_value_type = self.__get_value_type()
+        data_value = []
+        assert len(self.value) == len(
+            cls_value_type
+        ), f"Expected {self.value} which is not type {cls_value_type} "
+        for i, sv in enumerate(self.value):
+            sv_type = cls_value_type[i]
+            coerced_sv = None
+
+            assert isinstance(
+                sv, sv_type
+            ), f"Expected value '{sv}' should be of type '{sv_type}'"
+
+            if issubclass(sv_type, Component):
+                coerced_sv = sv.to_data()
+            elif issubclass(sv_type, enum.IntEnum):
+                coerced_sv = sv.value
+            elif sv_type is int:
+                coerced_sv = int(sv)
+            else:
+                raise TypeError(f"Expected value '{sv}' is not of type '{sv_type}'")
+            data_value.append(coerced_sv)
+        return data_value
 
     def to_data_for_numpy(self) -> List[int]:
         """Return a list of data of fixed size, suitable for final
@@ -107,11 +136,16 @@ class Component(abc.ABC):
             sv_type = cls_value_type[i]
             if issubclass(sv_type, Component):
                 data_value.append(sv_type.from_data(sv))
-            else:
+            elif issubclass(sv_type, enum.IntEnum):
                 data_value.append(sv_type(sv))
+            elif sv_type is int:
+                assert type(sv) is int
+                data_value.append(sv)
+            else:
+                raise RuntimeError(f"Cannot map correct type {sv_type} for {sv}")
         return cls(data_value)
 
-    def to_numpy_data(self):
+    def to_flattened_numpy_data(self, player_id: int):
         return spaces.flatten(self.get_observation_space(), self.to_data_for_numpy())
 
     @classmethod

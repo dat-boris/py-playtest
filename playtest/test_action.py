@@ -9,166 +9,139 @@ e.g. The explicitness for two class, can we collapse into one class if okay?
 Let's err on the side of noisiness for now.
 """
 import re
+import enum
 import numpy as np
-import pytest
+from collections import OrderedDict
+from typing import Set, List, Union
 
-from typing import Set, List
+import pytest
 
 import gym.spaces as spaces
 
 from .constant import Param
-from .action import (
-    ActionWaitRange,
-    ActionRange,
-    ActionFactory,
-    ActionInstance,
-    ActionWait,
-    ActionSingleValue,
-    ActionSingleValueRange,
-    ActionValueInSet,
-    ActionValueInSetRange,
-    InvalidActionError,
-)
+import playtest.action as acn
 from .test_state import MockState
+from .action_range import action_bool, action_int
 
 
-def test_wait_range():
-    action_range = ActionWaitRange(MockState(), player_id=0)
-    action = ActionWait()
-    assert action_range.is_valid(action)
+class MockActionName(enum.Enum):
+    DECIDE_BOOLEAN = "bool"
+    DECIDE_INT_IN_RANGE = "range"
+    DECIDE_INT_IN_SET = "set"
 
 
-def test_wait_numpy():
-    action_range = ActionWaitRange(MockState(), player_id=0)
-    assert action_range.to_numpy_data().tolist() == [1]
-    action = ActionWait()
-    assert action.to_int() == 0
-
-
-class ActionBet(ActionSingleValue[MockState]):
-    """A mock action for single value
+class MockDecision(acn.BaseDecision):
+    """Mock decision for testing rendering
     """
 
-    key = "bet"
+    action_enum = MockActionName
 
-    minimum_value = 5
-    maximum_value = 10
-
-    def resolve(self, s, player_id, a=None):
-        pass
-
-
-class BetActionUpperLowerRange(ActionSingleValueRange[ActionBet, MockState]):
-    """A mock action for single value, and use range method
-    """
-
-    instance_class = ActionBet
-
-    def __init__(self, state, player_id):
-        self.lower = 5
-        self.upper = 9
-
-
-def test_bet_action_single_value():
-    action_range = BetActionUpperLowerRange(MockState(), player_id=0)
-    assert str(action_range) == "bet(5->9)"
-    action = ActionBet(5)
-    assert action_range.is_valid(action)
-
-    # Now check conversion
-    assert action_range.get_action_space_possible() == spaces.Box(
-        low=5, high=10, shape=(2,), dtype=np.int
+    decision_ranges = OrderedDict(
+        [
+            (
+                MockActionName.DECIDE_BOOLEAN,
+                action_bool.ActionBooleanRange(MockActionName.DECIDE_BOOLEAN, None),
+            ),
+            (
+                MockActionName.DECIDE_INT_IN_SET,
+                action_int.ActionIntInSet(MockActionName.DECIDE_INT_IN_SET, {1, 3, 5}),
+            ),
+            (
+                MockActionName.DECIDE_INT_IN_RANGE,
+                action_int.ActionIntInRange(
+                    MockActionName.DECIDE_INT_IN_RANGE, (10, 20)
+                ),
+            ),
+        ]
     )
-    assert action_range.to_numpy_data().tolist() == [5, 9]
-    assert action_range.to_numpy_data_null().tolist() == [0, 0]
-
-    assert action.to_int() == 5 - 5
-
-
-class ActionEat(ActionValueInSet[MockState, str]):
-    """A mock of action value in set"""
-
-    key = "eat"
-
-    value_set_mapping = ["apple", "orange", "banana"]
-    unique_value_count = 3
-
-    def resolve(self, s, player_id, a=None):
-        pass
-
-
-class EatActionSetRange(ActionValueInSetRange[ActionEat, MockState, str]):
-    """An action range that takes a set, and gives a set"""
-
-    instance_class = ActionEat
-    possible_values: Set[str]
-
-    def __init__(self, state, player_id):
-        """A mock that assume all values are possible"""
-        self.possible_values = {"apple", "banana"}
-
-
-def test_action_in_set():
-    action_range = EatActionSetRange(MockState(), player_id=0)
-    # Get check on the action
-    assert str(action_range) == "eat([apple,banana])"
-    with pytest.raises(InvalidActionError):
-        ActionEat("not_exists")
-    action = ActionEat("banana")
-    assert action_range.is_valid(action)
-
-    # Now check the numpy conversion
-    assert action_range.get_action_space_possible() == spaces.MultiBinary(3)
-    assert action_range.to_numpy_data_null().tolist() == [0, 0, 0]
-    assert action_range.to_numpy_data().tolist() == [1, 0, 1]
-
-    assert action.to_int() == 2
-
-
-# -----------------------
-# Testing ActionFactory
-# -----------------------
-
-
-class MockActionFactory(ActionFactory):
-    range_classes = [ActionWaitRange, BetActionUpperLowerRange, EatActionSetRange]
 
 
 @pytest.fixture
-def factory():
-    return MockActionFactory(Param(number_of_players=2))
-
-
-def test_action_factor_action_space(factory):
-    assert factory.number_of_actions == 10
-
-
-def test_action_factory_possible(factory):
-    possible_action_space = factory.action_space_possible
-    assert isinstance(possible_action_space, spaces.Dict)
-
-    assert spaces.flatdim(possible_action_space) == 6
-
-    action_dict = factory.action_range_to_numpy(
-        [ActionWaitRange(MockState(), player_id=0)]
+def md() -> MockDecision:
+    md = MockDecision(
+        # This gives the the specific decisions space
+        {
+            MockActionName.DECIDE_BOOLEAN: True,
+            # Note this is subset of the set
+            MockActionName.DECIDE_INT_IN_SET: {3, 5},
+            MockActionName.DECIDE_INT_IN_RANGE: (11, 13),
+        }
     )
-    assert action_dict["wait"] == [1]
+    return md
 
 
-def test_convert_action(factory):
-    action_map = factory.get_action_map()
+# ----------------------
+# Testing util functions
+# ----------------------
+
+
+def test_action_factor_action_space(md: MockDecision):
+    assert md.get_number_of_actions() == 14
+
+
+def test_pick_random_action(md: MockDecision):
+    random_action = md.pick_random_action()
+    assert isinstance(random_action, acn.ActionInstance)
+
+
+# ----------------------
+# Testing boolean mapping
+# ----------------------
+
+
+def test_decision_check_bool(md: MockDecision):
+    """Test that we created out decisions correctly
+    """
+    bool_action = md.from_str("bool()")
+    assert md.is_legal(bool_action)
+
+
+def test_md_to_action_int_bool(md: MockDecision):
+    """Action only takes int, so we have to convert this
+    into a valid int somehow!
+    """
+    action_map = md.get_action_map()
     assert action_map == [
-        (ActionWaitRange, 0, 1),
-        (BetActionUpperLowerRange, 1, 7),
-        (EatActionSetRange, 7, 10),
+        (MockActionName.DECIDE_BOOLEAN, 0, 1),
+        (MockActionName.DECIDE_INT_IN_SET, 1, 4),
+        (MockActionName.DECIDE_INT_IN_RANGE, 4, 14),
     ]
-    action_value = factory.to_int(ActionEat("orange"))
-    assert isinstance(action_value, int), "Convert action to np.int"
-    assert action_value == 8
-    action = factory.from_int(action_value)
-    assert action == ActionEat("orange")
-    action = factory.from_int(5)
-    assert action == ActionBet(9)
-    # since wait is the first item in MockActionFactory
-    action = factory.from_int(0)
-    assert action == ActionWait()
+
+    # TODO: this is probably not needed
+    # action_value = md.to_int({MockActionName.DECIDE_BOOLEAN: True})
+    # assert isinstance(action_value, int), "Convert action to np.int"
+    # assert action_value == 1
+
+    expected_action = acn.ActionInstance(MockActionName.DECIDE_BOOLEAN, True)
+    action = md.from_int(0)
+    assert isinstance(action, acn.ActionInstance)
+    assert action == expected_action
+
+    expected_action = acn.ActionInstance(MockActionName.DECIDE_INT_IN_SET, 3)
+    # Lower value (1) + offset (3 -> 1)
+    action = md.from_int(2)
+    assert isinstance(action, acn.ActionInstance)
+    assert action == expected_action
+
+    expected_action = acn.ActionInstance(MockActionName.DECIDE_INT_IN_RANGE, 11)
+    # Lower value (4) + offset (1)
+    action = md.from_int(5)
+    assert isinstance(action, acn.ActionInstance)
+    assert action == expected_action
+
+
+def test_set_action(md: MockDecision):
+    expected_action = acn.ActionInstance(MockActionName.DECIDE_INT_IN_SET, 1)
+    int_in_set_action = md.from_str("set(3)")
+    assert md.is_legal(int_in_set_action)
+
+    invalid_action = md.from_str("set(10)")
+    assert not md.is_legal(invalid_action)
+
+
+def test_range_action(md: MockDecision):
+    int_in_range_action = md.from_str("range(11)")
+    assert md.is_legal(int_in_range_action)
+
+    invalid_action = md.from_str("range(17)")
+    assert not md.is_legal(invalid_action)

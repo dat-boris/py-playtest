@@ -40,8 +40,13 @@ class SubState(Component):
             if isinstance(attr_val, list):
                 for attr_val_in_list in attr_val:
                     attr_val_in_list.reset()
-            else:
+            elif issubclass(attr_val.__class__, Component):
                 attr_val.reset()
+            elif type(attr_val) is int:
+                # TODO: this is not reset, but we really should reset it
+                pass
+            else:
+                raise TypeError(f"Unknown type for {name}: value {attr_val}")
 
     def to_data(self, to_data_func_name="to_data"):
         return self._to_data_from_spec(
@@ -100,21 +105,44 @@ class SubState(Component):
                 # e.g. attr_va.to_data()
                 to_data_func = getattr(attr_val, to_data_func_name)
                 val_dict[name] = to_data_func()
+            elif isinstance(attr_val, int):
+                # TODO: we should wrap int as a Component
+                if to_data_func_name == "to_data":
+                    val_dict[name] = attr_val
+                elif to_data_func_name == "to_data_for_numpy":
+                    # Use an array and convert to numpy
+                    val_dict[name] = np.array([attr_val])
+                elif to_data_func_name == "get_observation_space":
+                    val_dict[name] = spaces.Box(low=0, high=0xFF, shape=[1])
+                else:
+                    raise TypeError(f"Unknown handler action: {to_data_func_name}")
             else:
-                raise RuntimeError(f"Received non component data in {name}")
+                raise RuntimeError(
+                    f"Received non component or int in {name}: {attr_val}"
+                )
         return val_dict
 
     @classmethod
     def from_data(cls, data):
         instance = cls()
-        for name, data_class in cls.__annotations__.items():
+        for name, attr_value in data.items():
+            # We ignore players on state since this will handeld separately
+            # by subclass
+            if name == "players":
+                continue
+            data_class = cls.__annotations__[name]
             assert name in data, "{} does not present in data.".format(name)
             if inspect.isclass(data_class) and issubclass(data_class, Component):
-                attr_instance = data_class.from_data(data[name])
+                attr_instance = data_class.from_data(attr_value)
                 assert isinstance(
                     attr_instance, Component
                 ), f"{data_class} did not return component"
                 setattr(instance, name, attr_instance)
+            elif data_class is int:
+                setattr(instance, name, attr_value)
+            else:
+                raise RuntimeError(f"Unknown attribute instance: {name}, {attr_value}")
+
         return instance
 
 
@@ -130,6 +158,7 @@ class FullState(SubState, Generic[S]):
 
     player_state_class: Type[S]
     players: Sequence[S]
+    current_player: int
 
     def __init__(self, param=None):
         """Initialize the players
@@ -144,6 +173,10 @@ class FullState(SubState, Generic[S]):
     @property
     def number_of_players(self) -> int:
         return len(self.players)
+
+    def next_player(self) -> int:
+        self.current_player = (self.current_player + 1) % self.number_of_players
+        return self.current_player
 
     def reset(self):
         super().reset()
@@ -179,6 +212,9 @@ class FullState(SubState, Generic[S]):
 
     def get_player_state(self, player_id: int) -> S:
         assert isinstance(player_id, int)
+        assert len(
+            self.players
+        ), "No players found - did you initialize Param.NUMBER_OF_PLAYERS?"
         return self.players[player_id]
 
     def to_player_data(self, player_id: int, for_numpy=False) -> Dict:

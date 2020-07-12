@@ -180,6 +180,13 @@ class Deck(Component, Generic[C]):
     def to_data(self):
         return [c.to_data() for c in self.value]
 
+    @classmethod
+    def from_data(cls, data):
+        cards = []
+        for card_data in data:
+            cards.append(cls.generic_card.from_data(card_data))
+        return cls(cards)
+
     def to_data_for_numpy(self):
         value_array = self.to_data()
         empty_slot_count = self.get_max_size() - len(value_array)

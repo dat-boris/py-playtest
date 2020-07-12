@@ -33,12 +33,14 @@ class HumanAgent(BaseAgent):
         while not chosen_action:
             try:
                 given_action = self.get_input(prompt)
-                chosen_action = env.action_factory.from_str(given_action)
+                assert env.next_accepted_action is not None
+                chosen_action = env.next_accepted_action.from_str(given_action)
                 print(f"😋 Chosen action: {chosen_action}")
             except InvalidActionError as e:
                 print("🙅‍♂️ Invalid action.")
                 print(str(e))
 
         # Now from the chosen action, convert back to np.ndarray
-        chosen_action_numpy = env.action_factory.to_int(chosen_action)
+        assert env.next_accepted_action is not None
+        chosen_action_numpy = env.next_accepted_action.to_int(chosen_action)
         return chosen_action_numpy

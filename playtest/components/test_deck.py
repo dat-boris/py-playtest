@@ -17,10 +17,10 @@ def test_observation():
     deck_data = deck1.to_data()
     assert deck_data[0] == expected_first_card.to_data()
 
-    deck1_data = deck1.to_numpy_data()
-    assert len(deck1_data) == 52 * 2, "Each card represented by 2 integer"
-    first_card = deck1_data[0:2]
-    assert (first_card == expected_first_card.to_numpy_data()).all()
+    deck1_data = deck1.to_data_for_numpy()
+    assert len(deck1_data) == 52, "Each card represented by 2 integer"
+    first_card = deck1_data[0]
+    assert first_card == expected_first_card.to_data_for_numpy()
 
 
 class PartialDeck(Deck):
@@ -40,19 +40,22 @@ def test_partial_hand():
     """
     deck_empty = PartialDeck(cards=[])
     assert deck_empty.to_data() == []
-    assert (
-        deck_empty.to_numpy_data()
-        == np.array(Card.get_null_data() * PartialDeck.get_max_size())
-    ).all()
+    assert deck_empty.to_data_for_numpy() == (
+        [Card.get_null_data()] * PartialDeck.get_max_size()
+    )
 
     expected_first_card = Card.from_str("A,S")
     deck = PartialDeck(cards=[expected_first_card] * 2)
     assert deck.to_data() == [expected_first_card.to_data()] * 2
-    numpy_data = deck.to_numpy_data()
-    assert len(numpy_data) == 2 * PartialDeck.get_max_size()
-    assert (numpy_data[0:2] == expected_first_card.to_numpy_data()).all()
-    assert (numpy_data[2:4] == expected_first_card.to_numpy_data()).all()
-    assert (numpy_data[4:6] == Card.get_null_data()).all()
+
+    # Test for flatten numpy data
+    numpy_data = deck.to_data_for_numpy()
+    assert len(numpy_data) == PartialDeck.get_max_size()
+    obs_space = deck.get_observation_space()
+    flattend_numpy = spaces.flatten(obs_space, numpy_data)
+    assert (flattend_numpy[0:2] == expected_first_card.to_data_for_numpy()).all()
+    assert (flattend_numpy[2:4] == expected_first_card.to_data_for_numpy()).all()
+    assert (flattend_numpy[4:6] == Card.get_null_data()).all()
 
 
 def test_deck_deal():

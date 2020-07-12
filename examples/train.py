@@ -12,7 +12,10 @@ sys.path.insert(0, os.getcwd())
 from playtest.env import GameWrapperEnvironment
 from playtest.agents import KerasDQNAgent, train_agents
 
-from pt_blackjack import Blackjack, Param
+from .constant import Reward, Param
+from pt_blackjack.state import State
+import pt_blackjack.game as gm
+import pt_blackjack.action as acn
 
 AGENT_COUNT = 2
 
@@ -34,8 +37,13 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    __game = Blackjack(Param(number_of_players=AGENT_COUNT), verbose=args.verbose)
-    env: GameWrapperEnvironment = GameWrapperEnvironment(__game, verbose=args.verbose)
+    env: GameWrapperEnvironment = GameWrapperEnvironment(
+        gm.BlackjackHandler(),
+        State(Param(number_of_players=AGENT_COUNT)),
+        gm.GameState.start,
+        acn.ActionDecision,
+        verbose=args.verbose,
+    )
 
     agents = [KerasDQNAgent(env) for _ in range(env.n_agents)]
 

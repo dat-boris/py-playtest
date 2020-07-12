@@ -1,7 +1,10 @@
 import logging
-from typing import Tuple, Generator, Optional, List, Dict, Sequence, Type
+from typing import Tuple, Generator, Optional, List, Dict, Sequence, Type, Any, Callable
 from pprint import pprint
 import warnings
+import enum
+
+import gym.spaces as spaces
 
 # TODO: Ignore old version of tensorflow warning
 warnings.simplefilter(action="ignore", category=FutureWarning)  # noqa
@@ -13,10 +16,16 @@ import gym.utils.seeding as seeding
 import gym.spaces as spaces
 from rl.core import Agent
 
-from .game import Game
+from .game import GameHandler, TypeHandlerReturn
 from .state import FullState
-from .action import ActionFactory, ActionRange, ActionInstance, InvalidActionError
 from .constant import Reward
+from .action import BaseDecision, ActionInstance
+
+
+class TooManyInvalidActions(Exception):
+    """Raise when the player ran too many exception"""
+
+    pass
 
 
 class GameWrapperEnvironment(gym.Env):
@@ -28,71 +37,90 @@ class GameWrapperEnvironment(gym.Env):
 
     metadata = {"render.modes": ["human"]}
 
-    game: Game
-    action_factory: ActionFactory
+    game_handler: GameHandler
     state: FullState
-    game_gen: Optional[Generator]
+    decision_class: Type[BaseDecision]
+
+    current_state: enum.Enum
     next_player: int
-    next_accepted_action: Optional[Sequence[ActionRange]]
-    cached_space: Optional[spaces.Space]
+    next_accepted_action: Optional[BaseDecision]
+
     # Number of times input is invalid
     continuous_invalid_inputs: List[ActionInstance]
+
     # Number of times before we choose a random action and continue
     max_continuous_invalid_inputs: int = 5
-    verbose: bool
 
-    def __init__(self, game: Game, verbose=True):
-        self.game = game
-        self.action_factory = game.action_factory
-        self.state = game.state
-        self.game_gen = None
-        # NOTE: default to first player, avoid mistakes in None check
-        self.next_player = 0
-        self.next_accepted_action = None
-        self.cached_space = None
-        self.continuous_invalid_inputs = []
+    verbose: bool
+    # If not allow invalid, raise exception when action is invalid
+    allow_invalid: bool
+
+    def __init__(
+        self,
+        gh: GameHandler,
+        s: FullState,
+        start_state: enum.Enum,
+        decision_class: Type[BaseDecision],
+        verbose=True,
+        allow_invalid=True,
+    ):
+        # Categories of information required
+        self.state = s
+        self.game_handler = gh
+        self.start_state = start_state
+        self.decision_class = decision_class
         self.verbose = verbose
+        self.allow_invalid = allow_invalid
+
+        # Now setting internal state flags
+        self.next_player = 0
+        self.current_state = start_state
+        self.next_accepted_action = None
+
+        # Initialize other status
+        self.continuous_invalid_inputs = []
 
     @property
     def n_agents(self) -> int:
-        return self.game.number_of_players
+        return self.state.number_of_players
 
     @property
     def action_space(self) -> spaces.Space:
         """Return the size of action space
         """
-        return spaces.MultiBinary(self.action_factory.number_of_actions)
+        return spaces.MultiBinary(self.decision_class.get_number_of_actions())
 
-    def __get_all_players_observation_with_action(self) -> List[np.ndarray]:
+    def __get_all_players_observation_with_action(
+        self, state: FullState, decision: BaseDecision
+    ) -> List[np.ndarray]:
         """This return a map of the action space,
         with a multi-discrete action space for checking next_accepted_action
         """
-        obs = [None] * self.game.number_of_players
-        af = self.action_factory
-        for p in self.game.players:
-            #  A set of default actions for all players
-            action_obs: Dict[str, np.ndarray] = af.action_range_to_numpy([])
-            assert self.next_accepted_action, "Must have action related"
-            if p.id == self.next_player:
-                action_obs = af.action_range_to_numpy(self.next_accepted_action)
-            obs[p.id] = spaces.flatten(
-                # Note this includes action observation
-                self.observation_space,
-                [action_obs, self.state.to_player_data(p.id, for_numpy=True)],
-            )
+        obs = [None] * self.n_agents
+
+        next_player: int = self.next_player
+        action_obs: Dict[str, np.ndarray] = decision.action_range_to_numpy()
+        player_obs_space = self.state.to_player_data(next_player, for_numpy=True)
+
+        # TODO: only set action for the next player
+        obs[next_player] = spaces.flatten(
+            # Note this includes action observation
+            self.observation_space,
+            [action_obs, player_obs_space],
+        )
         return obs
 
     @property
     def observation_space(self) -> spaces.Space:
-        if self.cached_space is not None:
-            return self.cached_space
-        self.cached_space = spaces.Tuple(
+        """Get a combination of action and observation space from the game
+        """
+        obs_space = spaces.Tuple(
             [
-                self.action_factory.action_space_possible,
+                self.decision_class.action_space_possible(),
                 self.state.get_observation_space_from_player(),
             ]
         )
-        return self.cached_space
+        return obs_space
 
     @property
     def reward_range(self) -> Tuple[int, int]:
@@ -100,113 +128,121 @@ class GameWrapperEnvironment(gym.Env):
         assert low >= Reward.INVALID_ACTION, "Punish reward must be higher than game"
         return low, high
 
-    # TODO: The return is an instance of the observation
     def reset(self) -> List[np.ndarray]:
         """Return instance of environment
         """
-        init_state = self.game.reset()
-        self.game_gen = self.game.start()
-        self.next_player, self.next_accepted_action, _ = next(self.game_gen)
-        self.cached_space = None
+        self.state.reset()
+
+        handler_func: Callable[
+            [FullState, Optional[ActionInstance]], TypeHandlerReturn
+        ] = self.game_handler.get_handler(self.current_state)
+        new_state, decision, next_game_state, next_player = handler_func(
+            self.state, None
+        )
+
+        self.state = new_state
+        self.next_accepted_action: Optional[BaseDecision] = decision
+        assert (
+            self.next_accepted_action is not None
+        ), "Must provide decision on initialization"
+        self.current_state = next_game_state
+        assert next_player is not None
+        self.next_player = next_player
+
         self.continuous_invalid_inputs = []
 
-        return self.__get_all_players_observation_with_action()
+        return self.__get_all_players_observation_with_action(
+            self.state, self.next_accepted_action
+        )
 
-    def step(
-        self, agents_action: List[int]
+    def __invalid_action_return(
+        self, action: ActionInstance
     ) -> Tuple[
-        List[spaces.Space],  # observations
+        List[Optional[spaces.Space]],  # observations
         List[int],  # rewards
         List[bool],  # terminals
         Dict,  # info
     ]:
-        assert self.game_gen, "Must run reset first"
+        if not self.allow_invalid:
+            raise RuntimeError(
+                f"Invalid action seen {action}.  Current state: {self.current_state}"
+            )
+        self.continuous_invalid_inputs.append(action)
+        if len(self.continuous_invalid_inputs) >= self.max_continuous_invalid_inputs:
+            err_msg = (
+                f"Getting continue bad input: {self.continuous_invalid_inputs}."
+                "Going to pick a random action"
+            )
+            if self.verbose:
+                logging.warn(err_msg)
+            self.continuous_invalid_inputs = []
+            raise TooManyInvalidActions(err_msg)
+        logging.warning(f"🙅‍♂️ Action {action} is not valid.")
+        assert self.next_accepted_action is not None
+        return (
+            self.__get_all_players_observation_with_action(
+                self.state, self.next_accepted_action
+            ),
+            # TODO: setup rewards
+            [0] * self.n_agents,
+            [False] * self.n_agents,
+            {},
+        )
 
+    def step(
+        self, agents_action: List[Optional[int]]
+    ) -> Tuple[
+        List[Optional[spaces.Space]],  # observations
+        List[int],  # rewards
+        List[bool],  # terminals
+        Dict,  # info
+    ]:
+        """Given the action, forward to the player
+        """
+        # TODO: not setting the rewards
         rewards = [0] * self.n_agents
 
-        # Let's check for the right action
-        assert self.next_accepted_action
+        # Given a list of action, map action into necessary int
+        current_player_action_int = agents_action[self.next_player]
+        assert current_player_action_int is not None
+        assert self.next_accepted_action is not None
+        action_to_send: ActionInstance = self.next_accepted_action.from_int(
+            current_player_action_int
+        )
 
-        action_to_send = None
-        lock_reward = False
+        # Check if action is legal
+        if not self.next_accepted_action.is_legal(action_to_send):
+            try:
+                return self.__invalid_action_return(action_to_send)
+            except TooManyInvalidActions:
+                action_to_send = self.next_accepted_action.pick_random_action()
 
-        for player_id, a in enumerate(agents_action):
-            assert isinstance(
-                int(a), int
-            ), f"Expect action of type int (got: {a.__class__})"
-            # Decode value from open_ai
-            action = self.action_factory.from_int(agents_action[player_id])
-            assert isinstance(action, ActionInstance)
-            # logging.warning(f"Player {player_id} got action: {action}")
-            if player_id == self.next_player:
-                if self.action_factory.is_valid_from_range(
-                    action, self.next_accepted_action
-                ):
-                    action_to_send = action
-                elif (
-                    len(self.continuous_invalid_inputs)
-                    >= self.max_continuous_invalid_inputs
-                ):
-                    if self.verbose:
-                        logging.warning(
-                            f"Getting continue bad input: {self.continuous_invalid_inputs}."
-                            "Going to pick a random action"
-                        )
-                    action_to_send = self.action_factory.pick_random_action(
-                        self.next_accepted_action
-                    )
-                    lock_reward = True
-                    rewards[player_id] = Reward.INVALID_ACTION
-                else:
-                    if self.verbose:
-                        logging.warning(f"🙅‍♂️ Action {action} is not valid.")
-                    self.continuous_invalid_inputs.append(action)
-                    rewards[player_id] = Reward.INVALID_ACTION
+        # Now sending the necessary actions
+        handler_func: Callable[
+            [FullState, Optional[ActionInstance]], TypeHandlerReturn
+        ] = self.game_handler.get_handler(self.current_state)
+        new_state, decision, next_game_state, next_player = handler_func(
+            self.state, action_to_send
+        )
 
-            else:
-                # Make sure for other player, the action is appropriate
-                # If it is not their turn and they move, punish!
-                expected_default_action: ActionInstance = self.action_factory.default
-                if action != expected_default_action:
-                    rewards[player_id] = Reward.INVALID_ACTION
-                else:
-                    rewards[player_id] = Reward.VALID_ACTION
-
-        observations = self.__get_all_players_observation_with_action()
-        terminal = [False for _ in range(self.game.number_of_players)]
-
-        # check if we have a valid action, and return that
-        if not action_to_send:
-            return (observations, rewards, terminal, {})
-        self.continuous_invalid_inputs = []
-
-        # Send the action to the step
-        stopped_iteration = False
-        try:
-            (next_player, accepted_action, last_reward) = self.game_gen.send(
-                action_to_send
-            )
-        except StopIteration:
-            # Game has finished! Return final state
-            stopped_iteration = True
-
-        # Let's get observation for each of the player
-        if stopped_iteration:
-            return (
-                observations,
-                # TODO: return winner's reward
-                [Reward.VALID_ACTION] * self.game.number_of_players,
-                # All players to terminate
-                [True] * self.game.number_of_players,
-                {},
-            )
-
-        if not lock_reward:
-            rewards[self.next_player] = last_reward
+        self.state = new_state
+        self.next_accepted_action: Optional[BaseDecision] = decision
+        assert (
+            self.next_accepted_action is not None
+        ), "Must provide decision on initialization"
+        self.current_state = next_game_state
+        assert next_player is not None
         self.next_player = next_player
-        self.next_accepted_action = accepted_action
 
-        return observations, rewards, terminal, {}
+        return (
+            self.__get_all_players_observation_with_action(
+                self.state, self.next_accepted_action
+            ),
+            # TODO: setup rewards
+            [0] * self.n_agents,
+            [False] * self.n_agents,
+            {},
+        )
 
     def render(self, mode="human"):
         """Render the relevant cards
@@ -266,11 +302,7 @@ class EnvironmentInteration:
                             f"playing more than {self.max_same_player} rounds"
                         )
 
-                default_numpy_action = env.action_factory.to_int(
-                    env.action_factory.default
-                )
-                action_n = [default_numpy_action] * env.n_agents
-
+                action_n = [None] * env.n_agents
                 # print(f"Player {player_id} taking action...")
 
                 action_taken = self.agents[player_id].forward(obs_n[player_id])
