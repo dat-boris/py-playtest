@@ -76,7 +76,7 @@ def md() -> MockDecision:
 
 
 def test_action_factor_action_space(md: MockDecision):
-    assert md.number_of_actions == 14
+    assert md.get_number_of_actions() == 14
 
 
 def test_pick_random_action(md: MockDecision):

@@ -22,7 +22,7 @@ class ActionIntInSet(ActionRange):
         return x.key == self.action_name and x.value in legal_range
 
     def pick_random(self, legal_range: Any) -> ActionInstance:
-        picked_value = random.choice(legal_range)
+        picked_value = random.choice(list(legal_range))
         return ActionInstance(key=self.action_name, value=picked_value)
 
     # ---------

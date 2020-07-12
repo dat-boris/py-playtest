@@ -24,4 +24,3 @@ class GameHandler:
         self, game_state: enum.Enum
     ) -> Callable[[FullState, Optional[ActionInstance]], TypeHandlerReturn]:
         return self.handler[game_state]
-

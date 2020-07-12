@@ -29,4 +29,3 @@ class ActionDecision(acn.BaseDecision):
             (ActionName.BET, action_int.ActionIntInRange(ActionName.BET, (0, 100)),),
         ]
     )
-

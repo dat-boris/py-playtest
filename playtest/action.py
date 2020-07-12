@@ -299,4 +299,3 @@ class BaseDecision:
             if lower <= input_value < upper:
                 return action_range.from_int(input_value - lower)
         raise KeyError(f"Illegal action input: {input_value}.")
-
