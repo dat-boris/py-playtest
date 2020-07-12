@@ -33,7 +33,7 @@ class GameWrapperEnvironment(gym.Env):
 
     game_handler: GameHandler
     state: FullState
-    # decision_class: Type[BaseDecision]
+    decision_class: Type[BaseDecision]
 
     current_state: enum.Enum
     next_player: int
@@ -51,15 +51,15 @@ class GameWrapperEnvironment(gym.Env):
         self,
         gh: GameHandler,
         s: FullState,
-        # decision_class: Type[BaseDecision],
         start_state: enum.Enum,
+        decision_class: Type[BaseDecision],
         verbose=True,
     ):
         # Categories of information required
         self.state = s
         self.game_handler = gh
-        # self.decision_class = decision_class
         self.start_state = start_state
+        self.decision_class = decision_class
         self.verbose = verbose
 
         # Now setting internal state flags
@@ -78,8 +78,7 @@ class GameWrapperEnvironment(gym.Env):
     def action_space(self) -> spaces.Space:
         """Return the size of action space
         """
-        assert self.next_accepted_action is not None
-        return spaces.MultiBinary(self.next_accepted_action.get_number_of_actions())
+        return spaces.MultiBinary(self.decision_class.get_number_of_actions())
 
     def __get_all_players_observation_with_action(
         self, state: FullState, decision: BaseDecision
@@ -105,10 +104,9 @@ class GameWrapperEnvironment(gym.Env):
     def observation_space(self) -> spaces.Space:
         """Get a combination of action and observation space from the game
         """
-        assert self.next_accepted_action is not None
         obs_space = spaces.Tuple(
             [
-                self.next_accepted_action.action_space_possible(),
+                self.decision_class.action_space_possible(),
                 self.state.get_observation_space_from_player(),
             ]
         )

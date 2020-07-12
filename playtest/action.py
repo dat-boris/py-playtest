@@ -233,7 +233,10 @@ class BaseDecision:
     def is_legal(self, action: ActionInstance) -> bool:
         action_enum_matched = action.key
         action_range = self.decision_ranges[action_enum_matched]
-        legal_range = self.legal_action[action_enum_matched]
+        legal_range = self.legal_action.get(action_enum_matched)
+        # The action might not be in range at all
+        if legal_range is None:
+            return False
         return action_range.is_legal(action, legal_range)
 
     def pick_random_action(
@@ -269,20 +272,19 @@ class BaseDecision:
             current_index = upper_bound
         return action_map
 
-    # TODO(boris): if this is required?
-    # def to_int(self, action: ActionInstance) -> int:
-    #     """Converting an action instance to numpy."""
-    #     int_to_return = 0
-    #     action_map = self.get_action_map()
-    #     for action_enum, lower, upper in action_map:
-    #         assert isinstance(action_enum, enum.Enum)
-    #         if action_enum == action.key:
-    #             action_range = self.decision_ranges[action_enum]
-    #             value = action_range.to_int(action.value)
-    #             final_action_value = lower + value
-    #             assert lower <= final_action_value <= upper
-    #             return final_action_value
-    #     raise KeyError(f"Cannot map action: {action}")
+    def to_int(self, action: ActionInstance) -> int:
+        """Converting an action instance to numpy."""
+        int_to_return = 0
+        action_map = self.get_action_map()
+        for action_enum, lower, upper in action_map:
+            assert isinstance(action_enum, enum.Enum)
+            if action_enum == action.key:
+                action_range = self.decision_ranges[action_enum]
+                value = action_range.to_int(action.value)
+                final_action_value = lower + value
+                assert lower <= final_action_value <= upper
+                return final_action_value
+        raise KeyError(f"Cannot map action: {action}")
 
     def from_int(self, input_value: int) -> ActionInstance:
         """Converting from numpy to an action instance."""
