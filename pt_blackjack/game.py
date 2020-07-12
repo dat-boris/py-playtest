@@ -8,7 +8,7 @@ import numpy as np
 import gym.spaces as spaces
 
 from playtest.action import ActionInstance, ActionRange
-from playtest.game import Game, Player
+from playtest.game import GameHandler, TypeHandlerReturn
 
 import pt_blackjack.action as acn
 from pt_blackjack.state import State, PlayerState
@@ -34,10 +34,7 @@ class GameState(enum.Enum):
     end = "end"
 
 
-TypeReturnState = Tuple[State, Optional[acn.ActionDecision], GameState]
-
-
-def start(s: State, action=None) -> TypeReturnState:
+def game_start(s: State, action=None) -> TypeHandlerReturn:
     logging.info("Start of next round!")
     current_player = s.current_player
     return deal_round(s)
@@ -52,7 +49,7 @@ def start(s: State, action=None) -> TypeReturnState:
     # TODO: how to reward the player?
 
 
-def deal_round(s: State, action=None) -> TypeReturnState:
+def deal_round(s: State, action=None) -> TypeHandlerReturn:
     current_player = s.current_player
     logging.info(f"Player {current_player} - it is your turn!")
 
@@ -67,10 +64,11 @@ def deal_round(s: State, action=None) -> TypeReturnState:
         s,
         acn.ActionDecision({acn.ActionName.BET: (Param.min_bet_per_round, bank_value)}),
         GameState.place_bet,
+        current_player,
     )
 
 
-def handle_bet(s: State, action: ActionInstance) -> TypeReturnState:
+def handle_bet(s: State, action: ActionInstance) -> TypeHandlerReturn:
     assert action.key == acn.ActionName.BET
     bet_value = action.value
 
@@ -86,10 +84,11 @@ def handle_bet(s: State, action: ActionInstance) -> TypeReturnState:
         # TODO: this action is really tied to the state (instead of others)
         acn.ActionDecision({acn.ActionName.HIT: True, acn.ActionName.SKIP: True,}),
         GameState.decide_hit_pass,
+        current_player,
     )
 
 
-def decide_hit_miss(s: State, action: ActionInstance) -> TypeReturnState:
+def decide_hit_miss(s: State, action: ActionInstance) -> TypeHandlerReturn:
     assert action.key in {acn.ActionName.HIT, acn.ActionName.SKIP}
 
     current_player = s.current_player
@@ -107,6 +106,7 @@ def decide_hit_miss(s: State, action: ActionInstance) -> TypeReturnState:
             s,
             acn.ActionDecision({acn.ActionName.HIT: True, acn.ActionName.SKIP: True,}),
             GameState.decide_hit_pass,
+            current_player,
         )
     elif action.key == acn.ActionName.SKIP:
         logging.info("Okay pass - on to next player!")
@@ -134,12 +134,13 @@ def decide_hit_miss(s: State, action: ActionInstance) -> TypeReturnState:
                 }
             ),
             GameState.decide_hit_pass,
+            current_player,
         )
 
     raise RuntimeError(f"Unknown action {action}")
 
 
-def check_winner(s: State, action=None) -> TypeReturnState:
+def check_winner(s: State, action=None) -> TypeHandlerReturn:
     current_player = s.current_player
 
     # Now check for winner
@@ -181,7 +182,7 @@ def check_winner(s: State, action=None) -> TypeReturnState:
     return end_of_round_next_round_check(s)
 
 
-def end_of_round_next_round_check(s: State, action=None) -> TypeReturnState:
+def end_of_round_next_round_check(s: State, action=None) -> TypeHandlerReturn:
     current_player = s.current_player
 
     all_banks = [
@@ -202,7 +203,7 @@ def end_of_round_next_round_check(s: State, action=None) -> TypeReturnState:
     return reset_round(s)
 
 
-def reset_round(s: State, action=None) -> TypeReturnState:
+def reset_round(s: State, action=None) -> TypeHandlerReturn:
     p: PlayerState
     for player_id, p in enumerate(s.players):
         # reset all hands
@@ -211,7 +212,7 @@ def reset_round(s: State, action=None) -> TypeReturnState:
     return deal_round(s)
 
 
-def find_final_winner(s: State, action=None) -> TypeReturnState:
+def find_final_winner(s: State, action=None) -> TypeHandlerReturn:
     all_banks = [
         s.get_player_state(player_id).bank.amount
         for player_id, p in enumerate(s.players)
@@ -223,5 +224,12 @@ def find_final_winner(s: State, action=None) -> TypeReturnState:
             winner = i
 
     # TODO: setting up winner control
-    return (s, None, GameState.end)
+    return (s, None, GameState.end, None)
 
+
+class BlackjackHandler(GameHandler):
+    handler = {
+        GameState.start: game_start,
+        GameState.place_bet: handle_bet,
+        GameState.decide_hit_pass: decide_hit_miss,
+    }

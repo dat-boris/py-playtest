@@ -172,8 +172,8 @@ class BaseDecision:
     def __init__(self, legal_action: Dict[ActionEnum, Any]):
         self.legal_action = legal_action
 
-    @property
-    def number_of_actions(self) -> int:
+    @classmethod
+    def get_number_of_actions(cls) -> int:
         """Represent the concret space for the action.
 
         This is used to communicate with OpenAI.gym about the the number of possible int.
@@ -183,11 +183,11 @@ class BaseDecision:
         """
         # We get this from the array of action
         return sum(
-            [a.get_number_of_distinct_value() for a in self.decision_ranges.values()]
+            [a.get_number_of_distinct_value() for a in cls.decision_ranges.values()]
         )
 
-    @property
-    def action_space_possible(self) -> spaces.Space:
+    @classmethod
+    def action_space_possible(cls) -> spaces.Space:
         """This represent the observed possible action
 
         For example, for a Bet, you can bet a higher and lower amount, based
@@ -206,7 +206,7 @@ class BaseDecision:
         return spaces.Dict(
             {
                 action_key.name: action_range.get_action_space_possible()
-                for action_key, action_range in self.decision_ranges.items()
+                for action_key, action_range in cls.decision_ranges.items()
             }
         )
 

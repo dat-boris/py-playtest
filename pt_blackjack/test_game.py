@@ -18,7 +18,7 @@ def test_start():
     assert len(s.players[0].hand) == 0, "First hand is empty"
 
     # Act
-    returned_state, decision, next_state = gm.start(s)
+    returned_state, decision, next_state, _ = gm.game_start(s)
     # pprint(s.to_data())
 
     # Assert - check next game state and what it should be
@@ -65,7 +65,7 @@ def test_to_next_bet():
 
     # Act - make a $3 bet
     bet_action = ActionInstance(acn.ActionName.BET, 3)
-    returned_state, decision, next_state = gm.handle_bet(s, action=bet_action)
+    returned_state, decision, next_state, _ = gm.handle_bet(s, action=bet_action)
 
     # Assert - check the bank, and hit or miss action range
     assert s.players[0].bet == [3], "Correct bet was made"
@@ -103,7 +103,7 @@ def test_hit():
 
     # Act - make a hit on the action
     hit_action = ActionInstance(acn.ActionName.HIT, True)
-    returned_state, decision, next_state = gm.decide_hit_miss(s, action=hit_action)
+    returned_state, decision, next_state, _ = gm.decide_hit_miss(s, action=hit_action)
 
     # Assert, ensure that we get another card, and same action
     assert len(s.players[0].hand) == 3, "Player one get another card"
@@ -140,7 +140,7 @@ def test_skip_first_player():
 
     # Act - make a hit on the action
     skip_action = ActionInstance(acn.ActionName.SKIP, True)
-    returned_state, decision, next_state = gm.decide_hit_miss(s, action=skip_action)
+    returned_state, decision, next_state, _ = gm.decide_hit_miss(s, action=skip_action)
 
     # Assert, ensure that we get another card, and same action
     assert len(s.players[0].hand) == 2, "Player one get another card"
@@ -180,7 +180,7 @@ def test_evaluate_round_end():
 
     # Act - make a hit on the action
     skip_action = ActionInstance(acn.ActionName.SKIP, True)
-    returned_state, decision, next_state = gm.decide_hit_miss(s, action=skip_action)
+    returned_state, decision, next_state, _ = gm.decide_hit_miss(s, action=skip_action)
 
     # Assert, ensure that we get another card, and same action
     assert s.current_player == 0
@@ -226,7 +226,7 @@ def test_find_winner():
 
     # Act - make a hit on the action
     skip_action = ActionInstance(acn.ActionName.SKIP, True)
-    returned_state, decision, next_state = gm.decide_hit_miss(s, action=skip_action)
+    returned_state, decision, next_state, _ = gm.decide_hit_miss(s, action=skip_action)
 
     # Now player 1 win!
     assert decision is None

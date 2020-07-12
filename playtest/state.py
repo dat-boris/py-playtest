@@ -40,8 +40,13 @@ class SubState(Component):
             if isinstance(attr_val, list):
                 for attr_val_in_list in attr_val:
                     attr_val_in_list.reset()
-            else:
+            elif issubclass(attr_val.__class__, Component):
                 attr_val.reset()
+            elif type(attr_val) is int:
+                # TODO: this is not reset, but we really should reset it
+                pass
+            else:
+                raise TypeError(f"Unknown type for {name}: value {attr_val}")
 
     def to_data(self, to_data_func_name="to_data"):
         return self._to_data_from_spec(
@@ -101,7 +106,16 @@ class SubState(Component):
                 to_data_func = getattr(attr_val, to_data_func_name)
                 val_dict[name] = to_data_func()
             elif isinstance(attr_val, int):
-                val_dict[name] = attr_val
+                # TODO: we should wrap int as a Component
+                if to_data_func_name == "to_data":
+                    val_dict[name] = attr_val
+                elif to_data_func_name == "to_data_for_numpy":
+                    # Use an array and convert to unpy
+                    val_dict[name] = np.array([attr_val])
+                elif to_data_func_name == "get_observation_space":
+                    val_dict[name] = spaces.Box(low=0, high=0xFF, shape=[1])
+                else:
+                    raise TypeError(f"Unknown handler action: {to_data_func_name}")
             else:
                 raise RuntimeError(
                     f"Received non component or int in {name}: {attr_val}"
@@ -198,6 +212,9 @@ class FullState(SubState, Generic[S]):
 
     def get_player_state(self, player_id: int) -> S:
         assert isinstance(player_id, int)
+        assert len(
+            self.players
+        ), "No players found - did you initialize Param.NUMBER_OF_PLAYERS?"
         return self.players[player_id]
 
     def to_player_data(self, player_id: int, for_numpy=False) -> Dict:

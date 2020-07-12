@@ -3,6 +3,7 @@ import random
 import re
 
 import numpy as np
+import gym.spaces as spaces
 
 from playtest.action import ActionRange, ActionInstance, ActionEnum
 
