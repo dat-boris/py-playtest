@@ -21,8 +21,8 @@ class ActionIntInSet(ActionRange):
     def is_legal(self, x: ActionInstance, legal_range) -> bool:
         return x.key == self.action_name and x.value in legal_range
 
-    def pick_random(self) -> ActionInstance:
-        picked_value = random.choice(self.valid_range)
+    def pick_random(self, legal_range: Any) -> ActionInstance:
+        picked_value = random.choice(legal_range)
         return ActionInstance(key=self.action_name, value=picked_value)
 
     # ---------
@@ -95,8 +95,9 @@ class ActionIntInRange(ActionRange):
         lower_bound, upper_bound = legal_range
         return x.key == self.action_name and lower_bound <= x.value < upper_bound
 
-    def pick_random(self) -> ActionInstance:
-        picked_value = random.choice(self.__value_list())
+    def pick_random(self, legal_range: Any) -> ActionInstance:
+        lower, higher = legal_range
+        picked_value = random.choice(list(range(lower, higher)))
         return ActionInstance(key=self.action_name, value=picked_value)
 
     # ---------

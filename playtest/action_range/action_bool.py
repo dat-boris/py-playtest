@@ -23,7 +23,7 @@ class ActionBooleanRange(ActionRange):
         """Return an instance of action"""
         return ActionInstance(self.action_name, True)
 
-    def pick_random(self) -> ActionInstance:
+    def pick_random(self, legal_range: Any) -> ActionInstance:
         return self.__get_action()
 
     # ---------

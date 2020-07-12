@@ -86,7 +86,7 @@ class ActionRange(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def pick_random(self) -> ActionInstance:
+    def pick_random(self, legal_range: Any) -> ActionInstance:
         raise NotImplementedError()
 
     # ---------
@@ -162,12 +162,11 @@ class BaseDecision:
     # Constant
     action_enum: Type[enum.Enum]
     decision_ranges: MutableMapping[ActionEnum, ActionRange]
+    legal_action: Dict[ActionEnum, Any]
 
     # Specify default action for non-active player
     # TODO: remove if we do not need this
     # default: enum.Enum = enum.Enum.WAIT
-
-    legal_action: Dict[ActionEnum, Any]
 
     def __init__(self, legal_action: Dict[ActionEnum, Any]):
         self.legal_action = legal_action
@@ -239,14 +238,17 @@ class BaseDecision:
             return False
         return action_range.is_legal(action, legal_range)
 
-    def pick_random_action(
-        self, action_ranges: Optional[Sequence[ActionRange]] = None
-    ) -> ActionInstance:
-        """Pick a random action, out of the potential action classes"""
-        if action_ranges is None:
-            action_ranges = list(self.decision_ranges.values())
-        action_range = random.choice(action_ranges)
-        return action_range.pick_random()
+    def pick_random_action(self) -> ActionInstance:
+        """Pick a random action, out of the potential action classes
+
+        Returned action should pass is_legal check.
+        """
+        chosen_action_key: ActionEnum = random.choice(list(self.legal_action.keys()))
+
+        # Now we need to pick a legal action
+        chosen_action_range = self.decision_ranges[chosen_action_key]
+        legal_range = self.legal_action[chosen_action_key]
+        return chosen_action_range.pick_random(legal_range)
 
     def from_str(self, action_input: str) -> ActionInstance:
         """Tokenize input from string into ActionInstance"""

@@ -22,6 +22,12 @@ from .constant import Reward
 from .action import BaseDecision, ActionInstance
 
 
+class TooManyInvalidActions(Exception):
+    """Raise when the player ran too many exception"""
+
+    pass
+
+
 class GameWrapperEnvironment(gym.Env):
     """A wrapper which converts playtest into an environment
 
@@ -46,6 +52,8 @@ class GameWrapperEnvironment(gym.Env):
     max_continuous_invalid_inputs: int = 5
 
     verbose: bool
+    # If not allow invalid, raise exception when action is invalid
+    allow_invalid: bool
 
     def __init__(
         self,
@@ -54,6 +62,7 @@ class GameWrapperEnvironment(gym.Env):
         start_state: enum.Enum,
         decision_class: Type[BaseDecision],
         verbose=True,
+        allow_invalid=True,
     ):
         # Categories of information required
         self.state = s
@@ -61,6 +70,7 @@ class GameWrapperEnvironment(gym.Env):
         self.start_state = start_state
         self.decision_class = decision_class
         self.verbose = verbose
+        self.allow_invalid = allow_invalid
 
         # Now setting internal state flags
         self.next_player = 0
@@ -135,7 +145,7 @@ class GameWrapperEnvironment(gym.Env):
         assert (
             self.next_accepted_action is not None
         ), "Must provide decision on initialization"
-        self.next_game_state = next_game_state
+        self.current_state = next_game_state
         assert next_player is not None
         self.next_player = next_player
 
@@ -148,11 +158,15 @@ class GameWrapperEnvironment(gym.Env):
     def __invalid_action_return(
         self, action: ActionInstance
     ) -> Tuple[
-        List[spaces.Space],  # observations
+        List[Optional[spaces.Space]],  # observations
         List[int],  # rewards
         List[bool],  # terminals
         Dict,  # info
     ]:
+        if not self.allow_invalid:
+            raise RuntimeError(
+                f"Invalid action seen {action}.  Current state: {self.current_state}"
+            )
         self.continuous_invalid_inputs.append(action)
         if len(self.continuous_invalid_inputs) >= self.max_continuous_invalid_inputs:
             err_msg = (
@@ -161,10 +175,8 @@ class GameWrapperEnvironment(gym.Env):
             )
             if self.verbose:
                 logging.warn(err_msg)
-            # TODO: we should probably allwow forwarding the environment
-            # lock_reward = True
-            # rewards[player_id] = Reward.INVALID_ACTION
-            raise RuntimeError(err_msg)
+            self.continuous_invalid_inputs = []
+            raise TooManyInvalidActions(err_msg)
         logging.warning(f"🙅‍♂️ Action {action} is not valid.")
         assert self.next_accepted_action is not None
         return (
@@ -178,9 +190,9 @@ class GameWrapperEnvironment(gym.Env):
         )
 
     def step(
-        self, agents_action: List[int]
+        self, agents_action: List[Optional[int]]
     ) -> Tuple[
-        List[spaces.Space],  # observations
+        List[Optional[spaces.Space]],  # observations
         List[int],  # rewards
         List[bool],  # terminals
         Dict,  # info
@@ -192,6 +204,7 @@ class GameWrapperEnvironment(gym.Env):
 
         # Given a list of action, map action into necessary int
         current_player_action_int = agents_action[self.next_player]
+        assert current_player_action_int is not None
         assert self.next_accepted_action is not None
         action_to_send: ActionInstance = self.next_accepted_action.from_int(
             current_player_action_int
@@ -199,7 +212,10 @@ class GameWrapperEnvironment(gym.Env):
 
         # Check if action is legal
         if not self.next_accepted_action.is_legal(action_to_send):
-            return self.__invalid_action_return(action_to_send)
+            try:
+                return self.__invalid_action_return(action_to_send)
+            except TooManyInvalidActions:
+                action_to_send = self.next_accepted_action.pick_random_action()
 
         # Now sending the necessary actions
         handler_func: Callable[
@@ -214,7 +230,7 @@ class GameWrapperEnvironment(gym.Env):
         assert (
             self.next_accepted_action is not None
         ), "Must provide decision on initialization"
-        self.next_game_state = next_game_state
+        self.current_state = next_game_state
         assert next_player is not None
         self.next_player = next_player
 
@@ -286,11 +302,7 @@ class EnvironmentInteration:
                             f"playing more than {self.max_same_player} rounds"
                         )
 
-                default_numpy_action = env.action_factory.to_int(
-                    env.action_factory.default
-                )
-                action_n = [default_numpy_action] * env.n_agents
-
+                action_n = [None] * env.n_agents
                 # print(f"Player {player_id} taking action...")
 
                 action_taken = self.agents[player_id].forward(obs_n[player_id])

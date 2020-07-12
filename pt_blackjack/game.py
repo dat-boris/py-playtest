@@ -39,15 +39,6 @@ def game_start(s: State, action=None) -> TypeHandlerReturn:
     current_player = s.current_player
     return deal_round(s)
 
-    # TODO: oh well, this is what happen! We done have a loop!
-    # self.determine_winner()
-    # self.reset_hand()
-
-    # winner = self.find_winner()
-    # if winner is not None:
-    #     break
-    # TODO: how to reward the player?
-
 
 def deal_round(s: State, action=None) -> TypeHandlerReturn:
     current_player = s.current_player
@@ -69,7 +60,7 @@ def deal_round(s: State, action=None) -> TypeHandlerReturn:
 
 
 def handle_bet(s: State, action: ActionInstance) -> TypeHandlerReturn:
-    assert action.key == acn.ActionName.BET
+    assert action.key == acn.ActionName.BET, f"Invalid action name: {action}"
     bet_value = action.value
 
     current_player = s.current_player
@@ -89,7 +80,10 @@ def handle_bet(s: State, action: ActionInstance) -> TypeHandlerReturn:
 
 
 def decide_hit_miss(s: State, action: ActionInstance) -> TypeHandlerReturn:
-    assert action.key in {acn.ActionName.HIT, acn.ActionName.SKIP}
+    assert action.key in {
+        acn.ActionName.HIT,
+        acn.ActionName.SKIP,
+    }, f"Got action: {action}"
 
     current_player = s.current_player
     player_state: PlayerState = s.get_player_state(current_player)
@@ -133,8 +127,9 @@ def decide_hit_miss(s: State, action: ActionInstance) -> TypeHandlerReturn:
                     )
                 }
             ),
-            GameState.decide_hit_pass,
-            current_player,
+            GameState.place_bet,
+            # Note: this will be the next player
+            s.current_player,
         )
 
     raise RuntimeError(f"Unknown action {action}")

@@ -110,7 +110,7 @@ class SubState(Component):
                 if to_data_func_name == "to_data":
                     val_dict[name] = attr_val
                 elif to_data_func_name == "to_data_for_numpy":
-                    # Use an array and convert to unpy
+                    # Use an array and convert to numpy
                     val_dict[name] = np.array([attr_val])
                 elif to_data_func_name == "get_observation_space":
                     val_dict[name] = spaces.Box(low=0, high=0xFF, shape=[1])

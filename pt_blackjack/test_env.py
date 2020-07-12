@@ -23,6 +23,20 @@ def env() -> GameWrapperEnvironment:
         State(Param(number_of_players=AGENT_COUNT)),
         gm.GameState.start,
         acn.ActionDecision,
+        allow_invalid=False,
+    )
+    return env
+
+
+@pytest.fixture
+def env_allow_invalid() -> GameWrapperEnvironment:
+    # TODO: setting up the handler
+    env = GameWrapperEnvironment(
+        gm.BlackjackHandler(),
+        State(Param(number_of_players=AGENT_COUNT)),
+        gm.GameState.start,
+        acn.ActionDecision,
+        allow_invalid=True,
     )
     return env
 
@@ -72,7 +86,14 @@ def test_action_space(env):
 #     assert env.reward_range[1] > 0
 
 
-def test_step_needs_action(env):
+def __action_int(env: GameWrapperEnvironment, action: ActionInstance) -> int:
+    assert env.next_accepted_action is not None
+    action_int = env.next_accepted_action.to_int(action)
+    return action_int
+
+
+def test_step_invalid_action(env_allow_invalid):
+    env = env_allow_invalid
     env.reset()
     corrupt_input = -99
     # Given completely invalid input, give the error
@@ -81,12 +102,23 @@ def test_step_needs_action(env):
 
     # Given a illegal input, give the error
     assert len(env.continuous_invalid_inputs) == 0
-    illegal_action = ActionInstance(acn.ActionName.HIT, True)
-    illegal_action_int = env.next_accepted_action.to_int(illegal_action)
-    _, _, _, _ = env.step([illegal_action_int, corrupt_input])
+    illegal_action_int = __action_int(env, ActionInstance(acn.ActionName.HIT, True))
+    _, _, _, _ = env.step([illegal_action_int, None])
     # Ensure that we have set the invalid action
     assert len(env.continuous_invalid_inputs) == 1
     assert env.next_player == 0
+
+    # Now let's keep giving the player bad action
+    # We already have one invalid action sent, so -1 count
+    for _ in range(env.max_continuous_invalid_inputs - 1):
+        obs, reward, _, _ = env.step([illegal_action_int, None])
+        # TODO: not yet punished
+        # assert reward[0] < 0, "Player is punished"
+
+    state = env.state
+    bet_made = state.get_player_state(0).bet.value[0]
+    assert bet_made >= 0
+    assert len(env.continuous_invalid_inputs) == 0
 
 
 def test_step(env: GameWrapperEnvironment):
@@ -95,8 +127,7 @@ def test_step(env: GameWrapperEnvironment):
     # Note round 1: only one agent we care about!
     assert env.next_player == 0
 
-    bet_action = ActionInstance(acn.ActionName.BET, 3)
-    bet_action_int = env.next_accepted_action.to_int(bet_action)
+    bet_action_int = __action_int(env, ActionInstance(acn.ActionName.BET, 3))
 
     # Player 1 bet
     obs, reward, terminal, info = env.step([bet_action_int, None])
@@ -110,12 +141,11 @@ def test_step(env: GameWrapperEnvironment):
     # and obtain reasonable result
     obs_space = env.observation_space
     flatten_data = obs[0]
-    assert flatten_data.size == spaces.flatdim(obs_space)
+    assert flatten_data.size == spaces.flatdim(obs_space)  # type: ignore
 
     # Now we need to action again
     assert env.next_player == 0
-    hit_action = ActionInstance(acn.ActionName.HIT, True)
-    hit_action_int = env.next_accepted_action.to_int(hit_action)
+    hit_action_int = __action_int(env, ActionInstance(acn.ActionName.HIT, True))
 
     obs, reward, terminal, info = env.step([hit_action_int, None])
     assert len(obs) == AGENT_COUNT
@@ -124,61 +154,3 @@ def test_step(env: GameWrapperEnvironment):
     # TODO: reward not set
     # assert reward[0] == Reward.HITTED
     # assert all([r >= 0 for r in reward]), f"contain negative {reward}"
-
-
-# @pytest.mark.xfail
-# def test_invalid_action(env: GameWrapperEnvironment):
-#     """Ensure that invalid action will get punished
-
-#     And also observation should represent the accepted action
-#     """
-#     env.reset()
-#     state = env.game.s
-#     assert env.next_accepted_action == [ActionBetRange(state, player_id=0)]
-#     assert env.next_player == 0
-
-#     hit_numpy_value = env.action_factory.to_int(ActionHit())
-#     bet3_numpy_value = env.action_factory.to_int(ActionBet(3))
-#     wait_numpy_value = env.action_factory.to_int(ActionWait())
-
-#     obs, reward, _, _ = env.step([hit_numpy_value, bet3_numpy_value])
-
-#     assert reward[0] < 0
-#     assert reward[1] < 0
-#     _, reward, _, _ = env.step([wait_numpy_value, wait_numpy_value])
-#     assert reward[0] < 0
-#     assert reward[1] == Reward.VALID_ACTION
-#     _, reward, _, _ = env.step([bet3_numpy_value, bet3_numpy_value])
-#     assert reward[0] == Reward.BETTED
-#     assert reward[1] < 0
-
-
-# @pytest.mark.xfail
-# def test_continuous_invalid_action(env: GameWrapperEnvironment):
-#     """Given continous invalid action, this will eventually pick a
-#     random valida action
-#     """
-#     env.reset()
-#     state = env.game.s
-#     assert env.next_accepted_action == [ActionBetRange(state, player_id=0)]
-#     assert env.next_player == 0
-
-#     bet3_numpy_value = env.action_factory.to_int(ActionBet(3))
-#     wait_numpy_value = env.action_factory.to_int(ActionWait())
-
-#     # Move one step forward in the bet
-#     obs, reward, _, _ = env.step([bet3_numpy_value, wait_numpy_value])
-#     assert env.next_accepted_action == [
-#         ActionHitRange(state, player_id=0),
-#         ActionSkipRange(state, player_id=0),
-#     ]
-#     assert env.next_player == 0
-
-#     # Now let's keep giving the player bad action
-#     for _ in range(env.max_continuous_invalid_inputs + 1):
-#         obs, reward, _, _ = env.step([bet3_numpy_value, wait_numpy_value])
-#         assert reward[0] < 0, "Player is punished"
-
-#     games_moved = env.next_player == 1 or len(env.game.s.get_player_state(0).hand) == 3
-#     assert games_moved, "Automatically moved on"
-
