@@ -1,6 +1,13 @@
+SOURCES=playtest pt_blackjack examples
+
 # Run default code formatter
 black:
-	black playtest pt_blackjack
+	black $(SOURCES)
 
-check test:
+check: test mypy
+
+test:
 	pytest
+
+mypy:
+	mypy $(SOURCES) --ignore-missing-imports
