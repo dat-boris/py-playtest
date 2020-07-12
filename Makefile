@@ -1,3 +1,6 @@
-# TODO: simple continue of our current progress
-now:
-	pytest pt_blackjack/test_game.py
+# Run default code formatter
+black:
+	black playtest pt_blackjack
+
+check test:
+	pytest
