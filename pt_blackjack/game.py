@@ -8,7 +8,8 @@ import numpy as np
 import gym.spaces as spaces
 
 from playtest.action import ActionInstance, ActionRange
-from playtest.game import GameHandler, TypeHandlerReturn
+from playtest.game import GameHandler, TypeHandlerReturn, RewardLogger
+import playtest.components as cpn
 
 import pt_blackjack.action as acn
 from pt_blackjack.state import State, PlayerState
@@ -93,46 +94,49 @@ def decide_hit_miss(s: State, action: ActionInstance) -> TypeHandlerReturn:
 
     if action.key == acn.ActionName.HIT:
         s.deck.deal(player_state.hand, 1)
-        # TODO: calculate reward
-        # self.set_last_player_reward(Reward.HITTED)
-        s.hit_rounds += 1
-        return (
-            s,
-            acn.ActionDecision({acn.ActionName.HIT: True, acn.ActionName.SKIP: True,}),
-            GameState.decide_hit_pass,
-            current_player,
-        )
+        hand_values = __sum_card_points(player_state.hand)
+        if hand_values < Param.max_score:
+            s.hit_rounds += 1
+            return (
+                s,
+                acn.ActionDecision(
+                    {acn.ActionName.HIT: True, acn.ActionName.SKIP: True,}
+                ),
+                GameState.decide_hit_pass,
+                current_player,
+            )
+        elif hand_values == Param.max_score:
+            RewardLogger.add_reward(s.current_player, Reward.REWARD_EXACT_POINTS)
+        elif hand_values > Param.max_score:
+            RewardLogger.add_reward(s.current_player, Reward.PUNISH_BUSTED)
+
     elif action.key == acn.ActionName.SKIP:
         logging.info("Okay pass - on to next player!")
-        # TODO: calculate reward
-        # self.set_last_player_reward(Reward.SKIPPED)
-        s.hit_rounds = 0
-        s.next_player()
-        next_player_bank = s.players[s.current_player].bank
 
-        # do we have more players to play?
-        if s.current_player == 0:
-            # End of round - check for winner
-            return check_winner(s)
+    s.hit_rounds = 0
+    s.next_player()
+    next_player_bank = s.players[s.current_player].bank
 
-        # Next player bet
-        # TODO: really should be just going to state?
-        return (
-            s,
-            acn.ActionDecision(
-                {
-                    acn.ActionName.BET: (
-                        Param.min_bet_per_round,
-                        next_player_bank.value[0],
-                    )
-                }
-            ),
-            GameState.place_bet,
-            # Note: this will be the next player
-            s.current_player,
-        )
+    # do we have more players to play?
+    if s.current_player == 0:
+        # End of round - check for winner
+        return check_winner(s)
 
-    raise RuntimeError(f"Unknown action {action}")
+    # Next player bet
+    # TODO: really should be just going to state?
+    return (
+        s,
+        acn.ActionDecision(
+            {acn.ActionName.BET: (Param.min_bet_per_round, next_player_bank.value[0],)}
+        ),
+        GameState.place_bet,
+        # Note: this will be the next player
+        s.current_player,
+    )
+
+
+def __sum_card_points(deck: cpn.Deck) -> int:
+    return sum([c.number for c in deck])
 
 
 def check_winner(s: State, action=None) -> TypeHandlerReturn:
@@ -145,7 +149,7 @@ def check_winner(s: State, action=None) -> TypeHandlerReturn:
     p: PlayerState
     for player_id, p in enumerate(s.players):
         ps = s.get_player_state(player_id)
-        score_in_hand = sum([c.number for c in ps.hand])
+        score_in_hand = __sum_card_points(ps.hand)
         if score_in_hand > Param.max_score:
             logging.info("Player {} is busted! ({})".format(player_id, score_in_hand))
             # losers.append(p)
@@ -218,7 +222,12 @@ def find_final_winner(s: State, action=None) -> TypeHandlerReturn:
         if v > winner_amount:
             winner = i
 
-    # TODO: setting up winner control
+    for i, _ in enumerate(all_banks):
+        if i == winner:
+            RewardLogger.add_reward(i, Reward.REWARD_WINNER)
+        else:
+            RewardLogger.add_reward(i, Reward.PUNISH_LOSER)
+
     return (s, None, GameState.end, None)
 
 

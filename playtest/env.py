@@ -16,7 +16,7 @@ import gym.utils.seeding as seeding
 import gym.spaces as spaces
 from rl.core import Agent
 
-from .game import GameHandler, TypeHandlerReturn
+from .game import GameHandler, TypeHandlerReturn, RewardLogger
 from .state import FullState
 from .constant import Reward
 from .action import BaseDecision, ActionInstance
@@ -102,7 +102,6 @@ class GameWrapperEnvironment(gym.Env):
         action_obs: Dict[str, np.ndarray] = decision.action_range_to_numpy()
         player_obs_space = self.state.to_player_data(next_player, for_numpy=True)
 
-        # TODO: only set action for the next player
         obs[next_player] = spaces.flatten(
             # Note this includes action observation
             self.observation_space,
@@ -124,9 +123,10 @@ class GameWrapperEnvironment(gym.Env):
 
     @property
     def reward_range(self) -> Tuple[int, int]:
-        low, high = self.game.reward_range
-        assert low >= Reward.INVALID_ACTION, "Punish reward must be higher than game"
-        return low, high
+        # low, high = self.game.reward_range
+        # assert low >= Reward.INVALID_ACTION, "Punish reward must be higher than game"
+        # return low, high
+        raise NotImplementedError("Have not considered reward_range")
 
     def reset(self) -> List[np.ndarray]:
         """Return instance of environment
@@ -168,6 +168,7 @@ class GameWrapperEnvironment(gym.Env):
                 f"Invalid action seen {action}.  Current state: {self.current_state}"
             )
         self.continuous_invalid_inputs.append(action)
+
         if len(self.continuous_invalid_inputs) >= self.max_continuous_invalid_inputs:
             err_msg = (
                 f"Getting continue bad input: {self.continuous_invalid_inputs}."
@@ -177,14 +178,19 @@ class GameWrapperEnvironment(gym.Env):
                 logging.warn(err_msg)
             self.continuous_invalid_inputs = []
             raise TooManyInvalidActions(err_msg)
+
         logging.warning(f"🙅‍♂️ Action {action} is not valid.")
+
+        # Set punish for user who did invalid
+        rewards = [0] * self.n_agents
+        rewards[self.next_player] = Reward.INVALID_ACTION
+
         assert self.next_accepted_action is not None
         return (
             self.__get_all_players_observation_with_action(
                 self.state, self.next_accepted_action
             ),
-            # TODO: setup rewards
-            [0] * self.n_agents,
+            rewards,
             [False] * self.n_agents,
             {},
         )
@@ -199,9 +205,6 @@ class GameWrapperEnvironment(gym.Env):
     ]:
         """Given the action, forward to the player
         """
-        # TODO: not setting the rewards
-        rewards = [0] * self.n_agents
-
         # Given a list of action, map action into necessary int
         current_player_action_int = agents_action[self.next_player]
         assert current_player_action_int is not None
@@ -234,12 +237,14 @@ class GameWrapperEnvironment(gym.Env):
         assert next_player is not None
         self.next_player = next_player
 
+        rewards = [0] * self.n_agents
+        rewards[next_player] = RewardLogger.pop_reward_for_player(next_player)
+
         return (
             self.__get_all_players_observation_with_action(
                 self.state, self.next_accepted_action
             ),
-            # TODO: setup rewards
-            [0] * self.n_agents,
+            rewards,
             [False] * self.n_agents,
             {},
         )

@@ -15,6 +15,7 @@ class Param(ut.Param):
 
 
 class Reward(ut.Reward):
-    BETTED = 3
-    HITTED = 5
-    SKIPPED = 5
+    PUNISH_BUSTED = -3
+    REWARD_EXACT_POINTS = 3
+    REWARD_WINNER = 5
+    PUNISH_LOSER = -5
