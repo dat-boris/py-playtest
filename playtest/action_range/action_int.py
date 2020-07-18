@@ -11,6 +11,7 @@ from playtest.action import ActionRange, ActionInstance, ActionEnum
 class ActionIntInSet(ActionRange):
 
     action_name: ActionEnum
+    # A list of values mapped to position
     valid_range: List[int]
 
     def __init__(self, action_name: ActionEnum, valid_range: Set[int]):
@@ -63,11 +64,12 @@ class ActionIntInSet(ActionRange):
         """Return action space possible in numpy array
         """
         array_value = [0] * self.get_number_of_distinct_value()
-        assert (
-            len(legal_range) == array_value
-        ), "legal_range must be same as number of distinct value"
-        for v in list(legal_range):
-            array_value[v] = 1
+        assert len(array_value) == len(
+            self.valid_range
+        ), "Valid range should be same len"
+        for i, v in enumerate(self.valid_range):
+            if v in legal_range:
+                array_value[i] = 1
         return array_value
 
     def to_numpy_empty_action(self) -> np.ndarray:

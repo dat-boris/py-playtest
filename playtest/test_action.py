@@ -84,6 +84,16 @@ def test_pick_random_action(md: MockDecision):
     assert isinstance(random_action, acn.ActionInstance)
 
 
+def test_to_numpy_data(md: MockDecision):
+    np_data = md.action_range_to_numpy()
+    assert np_data == {
+        MockActionName.DECIDE_BOOLEAN.name: [1],
+        # Note this is subset of the set
+        MockActionName.DECIDE_INT_IN_SET.name: [0, 1, 1],
+        MockActionName.DECIDE_INT_IN_RANGE.name: [11, 13],
+    }
+
+
 # ----------------------
 # Testing boolean mapping
 # ----------------------
