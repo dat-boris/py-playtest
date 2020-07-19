@@ -1,22 +1,25 @@
 #!/usr/bin/env python
 """Run interactive agent for argparse
 """
-import os, sys
+import pt_blackjack.action as acn
+import pt_blackjack.game as gm
+from pt_blackjack.state import State
+from playtest.agents import HumanAgent, KerasDQNAgent
+from playtest.env import GameWrapperEnvironment, EnvironmentInteration
+import os
+import sys
 import argparse
+import logging
 from pprint import pprint
 
 import gym
 
 sys.path.insert(0, os.getcwd())
 
-from playtest.env import GameWrapperEnvironment, EnvironmentInteration
-from playtest.agents import HumanAgent, KerasDQNAgent
-
-from pt_blackjack.state import State
-import pt_blackjack.game as gm
-import pt_blackjack.action as acn
 
 AGENT_COUNT = 2
+
+logging.getLogger().setLevel(logging.INFO)
 
 
 if __name__ == "__main__":

@@ -106,8 +106,10 @@ def decide_hit_miss(s: State, action: ActionInstance) -> TypeHandlerReturn:
                 current_player,
             )
         elif hand_values == Param.max_score:
+            logging.info(f"🎉You got exact score of {hand_values}!")
             RewardLogger.add_reward(s.current_player, Reward.REWARD_EXACT_POINTS)
         elif hand_values > Param.max_score:
+            logging.info(f"🤦‍♀️Busted with score of {hand_values}!")
             RewardLogger.add_reward(s.current_player, Reward.PUNISH_BUSTED)
 
     elif action.key == acn.ActionName.SKIP:

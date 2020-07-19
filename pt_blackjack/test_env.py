@@ -113,7 +113,8 @@ def test_step_invalid_action(env_allow_invalid):
     assert len(env.continuous_invalid_inputs) == 0
 
 
-def test_step(env: GameWrapperEnvironment):
+def test_step(env):
+    env: GameWrapperEnvironment
     env.reset()
 
     # Note round 1: only one agent we care about!
