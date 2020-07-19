@@ -232,8 +232,16 @@ def find_final_winner(s: State, action=None) -> TypeHandlerReturn:
 
 
 class BlackjackHandler(GameHandler):
+    start_game_state = GameState.start
+    decision_class = acn.ActionDecision
     handler = {
         GameState.start: game_start,
         GameState.place_bet: handle_bet,
         GameState.decide_hit_pass: decide_hit_miss,
     }
+
+    def __init__(self, **param_kwargs):
+        param = None
+        if param_kwargs:
+            param = Param(**param_kwargs)
+        self.state = State(param=param)

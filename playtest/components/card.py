@@ -28,6 +28,10 @@ class BaseCard(Component):
     def get_all_cards(cls) -> Sequence["BaseCard"]:
         raise NotImplementedError()
 
+    def reset(self):
+        # No need to reset for cards
+        pass
+
 
 class CardSuite(enum.IntEnum):
     """One character representing the suite

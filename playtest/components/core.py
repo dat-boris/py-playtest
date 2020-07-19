@@ -48,12 +48,18 @@ class Component(abc.ABC):
 
     def __repr__(self):
         """Return a readable string with seperator seperating"""
-        return "{}({})".format(
-            self.__class__.__name__,
-            SEPERATOR.join(
-                [d.name if isinstance(d, enum.IntEnum) else str(d) for d in self.value]
-            ),
-        )
+        try:
+            return "{}({})".format(
+                self.__class__.__name__,
+                SEPERATOR.join(
+                    [
+                        d.name if isinstance(d, enum.IntEnum) else str(d)
+                        for d in self.value
+                    ]
+                ),
+            )
+        except AttributeError:
+            return f"{self.__class__.__name__,}(unknown)"
 
     @classmethod
     def __get_value_type(cls) -> List[Type[Union[enum.IntEnum, int]]]:
@@ -150,9 +156,24 @@ class Component(abc.ABC):
 
     @classmethod
     def get_null_data(cls):
-        return [-1 for _ in cls.value_type]
+        cls_value_type = cls.__get_value_type()
+        data_value = []
+        for i, sv_type in enumerate(cls_value_type):
+            if issubclass(sv_type, Component):
+                data_value.append(sv_type.get_null_data())
+            elif issubclass(sv_type, enum.IntEnum):
+                data_value.append(-1)
+            elif sv_type is int:
+                data_value.append(-1)
+            else:
+                raise RuntimeError(f"Cannot map correct type {sv_type} for {sv}")
+        return data_value
 
     @classmethod
     @abc.abstractmethod
     def get_observation_space(cls) -> spaces.Space:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def reset(self):
         raise NotImplementedError()

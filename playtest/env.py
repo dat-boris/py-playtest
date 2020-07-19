@@ -32,7 +32,7 @@ class GameWrapperEnvironment(gym.Env):
     """A wrapper which converts playtest into an environment
 
     This is built based on reference of the cartpole elements
-    gym: envs/classic_control/cartpole.py
+    gym: env/classic_control/cartpole.py
     """
 
     metadata = {"render.modes": ["human"]}
@@ -56,25 +56,19 @@ class GameWrapperEnvironment(gym.Env):
     allow_invalid: bool
 
     def __init__(
-        self,
-        gh: GameHandler,
-        s: FullState,
-        start_state: enum.Enum,
-        decision_class: Type[BaseDecision],
-        verbose=True,
-        allow_invalid=True,
+        self, gh: GameHandler, verbose=True, allow_invalid=True,
     ):
         # Categories of information required
-        self.state = s
         self.game_handler = gh
-        self.start_state = start_state
-        self.decision_class = decision_class
+        self.state = gh.state
+        self.start_state = gh.start_game_state
+        self.decision_class = gh.decision_class
         self.verbose = verbose
         self.allow_invalid = allow_invalid
 
         # Now setting internal state flags
         self.next_player = 0
-        self.current_state = start_state
+        self.current_state = self.start_state
         self.next_accepted_action = None
 
         # Initialize other status

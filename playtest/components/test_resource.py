@@ -54,3 +54,11 @@ def test_resource_comparison():
     assert r.has_required(FooBarResource([2, 1])) is True
     assert r.has_required(FooBarResource([4, 5])) is False
     assert r.has_required(FooBarResource([4, 1])) is False
+
+
+def test_null_resource():
+    r = FooBarResource.get_null_data()
+    assert r == [-1, -1]
+    obs = FooBarResource.get_observation_space()
+    null_numpy_data = spaces.flatten(obs, r)
+    assert null_numpy_data.tolist() == [-1, -1]

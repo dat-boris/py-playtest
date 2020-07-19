@@ -19,11 +19,7 @@ AGENT_COUNT = 2
 def env() -> GameWrapperEnvironment:
     # TODO: setting up the handler
     env = GameWrapperEnvironment(
-        gm.BlackjackHandler(),
-        State(Param(number_of_players=AGENT_COUNT)),
-        gm.GameState.start,
-        acn.ActionDecision,
-        allow_invalid=False,
+        gm.BlackjackHandler(number_of_players=AGENT_COUNT), allow_invalid=False,
     )
     return env
 
@@ -32,11 +28,7 @@ def env() -> GameWrapperEnvironment:
 def env_allow_invalid() -> GameWrapperEnvironment:
     # TODO: setting up the handler
     env = GameWrapperEnvironment(
-        gm.BlackjackHandler(),
-        State(Param(number_of_players=AGENT_COUNT)),
-        gm.GameState.start,
-        acn.ActionDecision,
-        allow_invalid=True,
+        gm.BlackjackHandler(number_of_players=AGENT_COUNT), allow_invalid=True,
     )
     return env
 

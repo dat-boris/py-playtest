@@ -1,4 +1,4 @@
-from typing import Dict, Callable, Tuple, Optional
+from typing import Dict, Callable, Tuple, Optional, Type
 import enum
 import abc
 from collections import defaultdict
@@ -17,8 +17,21 @@ class GameHandler:
     """A class which contains a mapping of various handler function
     """
 
+    state: FullState
+
+    @abc.abstractproperty
+    def start_game_state(self) -> enum.Enum:
+        raise NotImplementedError()
+
+    @abc.abstractproperty
+    def decision_class(self) -> Type[BaseDecision]:
+        raise NotImplementedError()
+
     @abc.abstractproperty
     def handler(self) -> Dict[enum.Enum, Callable]:
+        raise NotImplementedError()
+
+    def __init__(self, param_kwargs=None):
         raise NotImplementedError()
 
     def get_handler(

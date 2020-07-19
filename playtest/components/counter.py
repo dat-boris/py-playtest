@@ -15,6 +15,9 @@ class Counter(Component):
     def increment(self, value=1):
         self.value[0] += value
 
+    def reset(self):
+        self.value = [0]
+
     @classmethod
     def get_observation_space(cls):
         return spaces.Box(low=0, high=cls.max_amount, shape=(1,), dtype=np.uint8)

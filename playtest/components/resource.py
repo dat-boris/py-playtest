@@ -45,7 +45,7 @@ class Resource(Component, Generic[R]):
 
     @classmethod
     def get_observation_space(cls):
-        type_of_resource = len(cls.generic_resource)
+        type_of_resource = len(cls.value_type)
         return spaces.Box(
             low=0, high=cls.get_max_amount(), shape=(type_of_resource,), dtype=np.uint8,
         )
@@ -58,14 +58,28 @@ class Resource(Component, Generic[R]):
         ), f"Not all resources are there: {my.keys()} vs {set(self.generic_resource)}"
         return all([theirs.get(res, 0) <= my_count for res, my_count in my.items()])
 
+    def add_resource(self, required: "Resource"):
+        assert isinstance(required, Resource)
+        assert len(self.value) == len(required.value)
+
+        self.value = [
+            self.value[i] + required.value[i] for i, _ in enumerate(self.value)
+        ]
+
+    def sub_resource(self, required: "Resource"):
+        # NOTE: why not add_resource(-required.value)?
+        #   Because we cant have -ve resources
+        assert isinstance(required, Resource)
+        assert len(self.value) == len(required.value)
+
+        self.value = [
+            self.value[i] - required.value[i] for i, _ in enumerate(self.value)
+        ]
+
+    def reset(self):
+        self.value = [0 for _ in self.value_type]
+
     # TODO: fix these
-    # def sub_resource(self, required: "Resource"):
-    #     my = self.stack
-    #     theirs = required.stack
-    #     assert sorted(my.keys()) == self.get_all_resources()
-    #     self.value = self.struct_to_value(
-    #         {res: my_count - theirs.get(res, 0) for res, my_count in my.items()}
-    #     )
 
     # def sub_with_remainder(self, required: "Resource") -> "Resource":
     #     my = self.stack
@@ -82,14 +96,6 @@ class Resource(Component, Generic[R]):
     #             new_my_value[k] = v
     #     self.value = self.struct_to_value(new_my_value)
     #     return Resource(self.struct_to_value(remainder))
-
-    # def add_resource(self, required: "Resource"):
-    #     my = self.stack
-    #     theirs = required.stack
-    #     assert sorted(my.keys()) == self.get_all_resources()
-    #     self.value = self.struct_to_value(
-    #         {res: my_count + theirs.get(res, 0) for res, my_count in my.items()}
-    #     )
 
     # def pop_lowest(self: R, amount) -> R:
     #     """Pop number of cheapest resources"""
