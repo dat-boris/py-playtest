@@ -49,7 +49,7 @@ class ActionBooleanRange(ActionRange):
     # ---------
 
     def from_str(self, action_str: str) -> ActionInstance:
-        assert action_str.startswith(self.action_name.value + "(")
+        assert action_str.lower().startswith(self.action_name.value.lower() + "(")
         return self.__get_action()
 
     # ---------

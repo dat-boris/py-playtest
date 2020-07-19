@@ -47,8 +47,9 @@ class ActionIntInSet(ActionRange):
     # ---------
 
     def from_str(self, action_str: str) -> ActionInstance:
-        action_key = self.action_name.value
-        matches = re.match(f"{action_key}[(](\\w+)[)]", action_str)
+        action_str = action_str.lower()
+        action_key = self.action_name.value.lower()
+        matches = re.match(f"{action_key}[(](\\d+)[)]", action_str)
         assert matches
         instance_value = int(matches.group(1))
         return ActionInstance(key=self.action_name, value=instance_value)
@@ -124,8 +125,9 @@ class ActionIntInRange(ActionRange):
     # ---------
 
     def from_str(self, action_str: str) -> ActionInstance:
-        action_key = self.action_name.value
-        matches = re.match(f"{action_key}[(](\\w+)[)]", action_str)
+        action_str = action_str.lower()
+        action_key = self.action_name.value.lower()
+        matches = re.match(f"{action_key}[(](\\d+)[)]", action_str)
         assert matches
         instance_value = int(matches.group(1))
         return ActionInstance(key=self.action_name, value=instance_value)

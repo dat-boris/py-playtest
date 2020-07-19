@@ -252,8 +252,9 @@ class BaseDecision:
 
     def from_str(self, action_input: str) -> ActionInstance:
         """Tokenize input from string into ActionInstance"""
+        action_input = action_input.lower()
         for action_key, action_range in self.decision_ranges.items():
-            if action_input.startswith(action_key.value + "("):
+            if action_input.startswith(action_key.value.lower() + "("):
                 return action_range.from_str(action_input)
         raise KeyError(f"Unknown action: {action_input}")
 
