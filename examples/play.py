@@ -12,7 +12,6 @@ sys.path.insert(0, os.getcwd())
 from playtest.env import GameWrapperEnvironment, EnvironmentInteration
 from playtest.agents import HumanAgent, KerasDQNAgent
 
-from .constant import Reward, Param
 from pt_blackjack.state import State
 import pt_blackjack.game as gm
 import pt_blackjack.action as acn
@@ -39,13 +38,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    env: GameWrapperEnvironment = GameWrapperEnvironment(
-        gm.BlackjackHandler(),
-        State(Param(number_of_players=AGENT_COUNT)),
-        gm.GameState.start,
-        acn.ActionDecision,
-        verbose=args.verbose,
-    )
+    __game = gm.BlackjackHandler(number_of_players=AGENT_COUNT)
+    env: GameWrapperEnvironment = GameWrapperEnvironment(__game)
 
     second_agent = (
         KerasDQNAgent(env, weight_file=args.bot) if args.ai else HumanAgent(env)
